@@ -92,6 +92,11 @@ static void shoyu_compositor_constructed(GObject* object) {
   priv->self = self;
 
   g_assert(priv->wl_display != NULL);
+
+  if (priv->wlr_backend == NULL) {
+    priv->wlr_backend = wlr_backend_autocreate(wl_display_get_event_loop(priv->wl_display), NULL);
+  }
+
   g_assert(priv->wlr_backend != NULL);
 
   priv->wlr_renderer = wlr_renderer_autocreate(priv->wlr_backend);
@@ -180,6 +185,13 @@ static void shoyu_compositor_class_init(ShoyuCompositorClass* klass) {
 
   g_object_class_install_properties(object_class, kPropLast, shoyu_compositor_properties);
 
+  /**
+   * ShoyuCompositor::create-output:
+   * @compositor: the object which received the signal
+   * @wlr_output: the wlroots output which was recently created
+   *
+   * Returns: (transfer full): a #ShoyuOutput
+   */
   shoyu_compositor_signals[kSignalCreateOutput] = g_signal_new(
       "create-output", shoyu_compositor_get_type(), G_SIGNAL_RUN_LAST,
       G_STRUCT_OFFSET(ShoyuCompositorClass, create_output),
@@ -211,4 +223,18 @@ struct wlr_renderer* shoyu_compositor_get_wlr_renderer(ShoyuCompositor* self) {
   g_return_val_if_fail(priv != NULL, NULL);
 
   return priv->wlr_renderer;
+}
+
+/**
+ * shoyu_compositor_get_outputs:
+ *
+ * Returns: (element-type ShoyuOutput) (transfer full): a list of #ShoyuOutput
+ */
+GList* shoyu_compositor_get_outputs(ShoyuCompositor* self) {
+  g_return_val_if_fail(SHOYU_IS_COMPOSITOR(self), NULL);
+
+  ShoyuCompositorPrivate* priv = SHOYU_COMPOSITOR_GET_PRIVATE(self);
+  g_return_val_if_fail(priv != NULL, NULL);
+
+  return g_list_copy_deep(priv->outputs, (GCopyFunc)g_object_ref, NULL);
 }

@@ -6,6 +6,14 @@
 #include <wlr/util/log.h>
 #include <wayland-server-core.h>
 
+enum {
+  PROP_0 = 0,
+  PROP_WL_DISPLAY,
+  N_PROPERTIES,
+};
+
+static GParamSpec* shoyu_application_props[N_PROPERTIES] = { NULL, };
+
 G_DEFINE_TYPE_WITH_PRIVATE(ShoyuApplication, shoyu_application, g_application_get_type());
 
 static void shoyu_wlroots_log_handler(enum wlr_log_importance importance, const char* fmt, va_list args) {
@@ -55,11 +63,34 @@ static void shoyu_application_dispose(GObject* object) {
   G_OBJECT_CLASS(shoyu_application_parent_class)->dispose(object);
 }
 
+static void shoyu_application_get_property(GObject* object, guint prop_id, GValue* value, GParamSpec* pspec) {
+  ShoyuApplication* self = SHOYU_APPLICATION(object);
+  ShoyuApplicationPrivate* priv = SHOYU_APPLICATION_GET_PRIVATE(self);
+
+  switch (prop_id) {
+    case PROP_WL_DISPLAY:
+      g_value_set_pointer(value, priv->wl_display);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+      break;
+  }
+}
+
 static void shoyu_application_class_init(ShoyuApplicationClass* klass) {
   GObjectClass* object_class = G_OBJECT_CLASS(klass);
 
   object_class->constructed = shoyu_application_constructed;
   object_class->dispose = shoyu_application_dispose;
+  object_class->get_property = shoyu_application_get_property;
+
+  /**
+   * ShoyuApplication:wl-display: (getter get_wl_display)
+   *
+   * The Wayland display server instance associated with the application.
+   */
+  shoyu_application_props[PROP_WL_DISPLAY] = g_param_spec_pointer("wl-display", "Wayland Display", "The Wayland display server instance.", G_PARAM_READABLE);
+  g_object_class_install_properties(object_class, N_PROPERTIES, shoyu_application_props);
 }
 
 static void shoyu_application_init(ShoyuApplication* self) {}
