@@ -72,6 +72,7 @@
                 packages = with pkgs; [
                   pkg-config
                   gtk3
+                  gtk4
                   wlroots_0_18
                   meson
                   ninja

@@ -20,13 +20,33 @@ enum {
 static GParamSpec* shoyu_output_properties[kPropLast] = { NULL, };
 static guint shoyu_output_signals[kSignalLastSignal];
 
-G_DEFINE_TYPE_WITH_CODE(ShoyuOutput, shoyu_output, GTK_TYPE_BIN,
-    G_ADD_PRIVATE(ShoyuOutput));
+#if GTK_MAJOR_VERSION == 4
+// NOTE: keep in sync with "gtk/gtknativeprivate.h"
+struct _GtkNativeInterface {
+  GTypeInterface g_iface;
+
+  GdkSurface* (*get_surface)(GtkNative* self);
+  GskRenderer* (*get_renderer)(GtkNative* self);
+  void (*get_surface_transform)(GtkNative* self, double* x, double* y);
+  void (*layout)(GtkNative* self, int width, int height);
+};
+
+static void shoyu_output_native_iface_init(GtkNativeInterface* iface);
+
+G_DEFINE_TYPE_WITH_CODE(ShoyuOutput, shoyu_output, GTK_TYPE_WIDGET,
+    G_ADD_PRIVATE(ShoyuOutput)
+    G_IMPLEMENT_INTERFACE(GTK_TYPE_NATIVE, shoyu_output_native_iface_init));
+#elif GTK_MAJOR_VERSION == 3
+G_DEFINE_TYPE_WITH_PRIVATE(ShoyuOutput, shoyu_output, GTK_TYPE_BIN);
+#endif
 
 static gboolean shoyu_output_request_state_default(ShoyuOutput* self, struct wlr_output_state* event) {
   return TRUE;
 }
 
+#if GTK_MAJOR_VERSION == 4
+static void shoyu_output_native_iface_init(GtkNativeInterface* iface) {}
+#elif GTK_MAJOR_VERSION == 3
 static gboolean shoyu_output_draw(GtkWidget* widget, cairo_t* cr) {
   gboolean ret = FALSE;
 
@@ -44,6 +64,7 @@ static gboolean shoyu_output_draw(GtkWidget* widget, cairo_t* cr) {
 
   return ret;
 }
+#endif
 
 static void shoyu_output_destroy(struct wl_listener* listener, void* data) {
   ShoyuOutputPrivate* priv = wl_container_of(listener, priv, destroy);
@@ -64,6 +85,7 @@ static void shoyu_output_frame(struct wl_listener* listener, void* data) {
 
   struct wlr_render_pass* pass = wlr_output_begin_render_pass(priv->wlr_output, &state, NULL, NULL);
 
+#if GTK_MAJOR_VERSION == 3
   cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, priv->wlr_output->width, priv->wlr_output->height);
   cairo_t* cr = cairo_create(surface);
 
@@ -82,10 +104,39 @@ static void shoyu_output_frame(struct wl_listener* listener, void* data) {
   gtk_widget_draw(GTK_WIDGET(self), cr);
 
   cairo_destroy(cr);
+#elif GTK_MAJOR_VERSION == 4
+  graphene_rect_t bounds;
+  graphene_rect_init(&bounds, 0, 0, priv->wlr_output->width, priv->wlr_output->height);
+
+  gtk_widget_queue_draw(GTK_WIDGET(self));
+
+  GtkSnapshot* snapshot = gtk_snapshot_new();
+
+  GdkRGBA color = { 0, 1.0, 0, 1.0 };
+  gtk_snapshot_append_color(snapshot, &color, &bounds);
+
+  GTK_WIDGET_GET_CLASS(self)->snapshot(GTK_WIDGET(self), snapshot);
+
+  GskRenderNode* node = gtk_snapshot_free_to_node(snapshot);
+
+  cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, priv->wlr_output->width, priv->wlr_output->height);
+  cairo_t* cr = cairo_create(surface);
+
+  cairo_set_source_rgb(cr, 0, 0, 0);
+  cairo_rectangle(cr, 0, 0, priv->wlr_output->width * 1.0, priv->wlr_output->height * 1.0);
+  cairo_fill(cr);
+
+  gsk_render_node_draw(node, cr);
+  gsk_render_node_unref(node);
+
+  cairo_destroy(cr);
+#endif
 
   struct wlr_texture* texture = wlr_texture_from_pixels(shoyu_compositor_get_wlr_renderer(priv->compositor), DRM_FORMAT_ARGB8888, cairo_image_surface_get_stride(surface), priv->wlr_output->width, priv->wlr_output->height, (const void*)cairo_image_surface_get_data(surface));
 
+#if GTK_MAJOR_VERSION == 3
   cairo_surface_destroy(surface);
+#endif
 
   wlr_render_pass_add_texture(pass, &(struct wlr_render_texture_options){
     .texture = texture,
@@ -132,11 +183,18 @@ static void shoyu_output_constructed(GObject* object) {
   priv->request_state.notify = shoyu_output_request_state;
   wl_signal_add(&priv->wlr_output->events.request_state, &priv->request_state);
 
+#if GTK_MAJOR_VERSION == 3
   GtkWidgetPath* widget_path = gtk_widget_get_path(GTK_WIDGET(self));
   gtk_widget_path_append_type(widget_path, GTK_TYPE_WINDOW);
+#endif
 
   GtkStyleContext* context = gtk_widget_get_style_context(GTK_WIDGET(self));
+
+#if GTK_MAJOR_VERSION == 3
   gtk_style_context_add_class(context, GTK_STYLE_CLASS_BACKGROUND);
+#elif GTK_MAJOR_VERSION == 4
+  gtk_style_context_add_class(context, "background");
+#endif
 }
 
 static void shoyu_output_dispose(GObject* object) {
@@ -192,7 +250,9 @@ static void shoyu_output_class_init(ShoyuOutputClass* klass) {
 
   klass->request_state = shoyu_output_request_state_default;
 
+#if GTK_MAJOR_VERSION == 3
   widget_class->draw = shoyu_output_draw;
+#endif
 
   object_class->constructed = shoyu_output_constructed;
   object_class->dispose = shoyu_output_dispose;
@@ -214,9 +274,12 @@ static void shoyu_output_class_init(ShoyuOutputClass* klass) {
 }
 
 static void shoyu_output_init(ShoyuOutput* self) {
+#if GTK_MAJOR_VERSION == 3
   gtk_widget_set_has_window(GTK_WIDGET(self), TRUE);
-  gtk_widget_set_visible(GTK_WIDGET(self), TRUE);
   gtk_widget_set_mapped(GTK_WIDGET(self), TRUE);
+#endif
+
+  gtk_widget_set_visible(GTK_WIDGET(self), TRUE);
 }
 
 ShoyuOutput* shoyu_output_new(ShoyuCompositor* compositor, struct wlr_output* wlr_output) {

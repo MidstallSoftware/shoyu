@@ -32,7 +32,12 @@ static void shoyu_application_constructed(GObject* object) {
   ShoyuApplicationPrivate* priv = SHOYU_APPLICATION_GET_PRIVATE(self);
 
   wlr_log_init(WLR_DEBUG, shoyu_wlroots_log_handler);
+
+#if GTK_MAJOR_VERSION == 3
   gtk_init(NULL, NULL);
+#elif GTK_MAJOR_VERSION == 4
+  gtk_init();
+#endif
 
   priv->wl_display = wl_display_create();
 
