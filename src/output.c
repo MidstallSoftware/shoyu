@@ -13,6 +13,7 @@ enum {
   kPropLast,
 
   kSignalDestroy = 0,
+  kSignalRequestState,
   kSignalLastSignal,
 };
 
@@ -21,6 +22,10 @@ static guint shoyu_output_signals[kSignalLastSignal];
 
 G_DEFINE_TYPE_WITH_CODE(ShoyuOutput, shoyu_output, GTK_TYPE_BIN,
     G_ADD_PRIVATE(ShoyuOutput));
+
+static gboolean shoyu_output_request_state_default(ShoyuOutput* self, struct wlr_output_state* event) {
+  return TRUE;
+}
 
 static gboolean shoyu_output_draw(GtkWidget* widget, cairo_t* cr) {
   gboolean ret = FALSE;
@@ -73,7 +78,7 @@ static void shoyu_output_frame(struct wl_listener* listener, void* data) {
     .height = priv->wlr_output->height,
   };
 
-  gtk_widget_size_allocate(self, &alloc);
+  gtk_widget_size_allocate(GTK_WIDGET(self), &alloc);
   gtk_widget_draw(GTK_WIDGET(self), cr);
 
   cairo_destroy(cr);
@@ -95,6 +100,22 @@ static void shoyu_output_frame(struct wl_listener* listener, void* data) {
   wlr_texture_destroy(texture);
 }
 
+static void shoyu_output_request_state(struct wl_listener* listener, void* data) {
+  ShoyuOutputPrivate* priv = wl_container_of(listener, priv, request_state);
+  ShoyuOutput* self = priv->self;
+
+  const struct wlr_output_event_request_state* event = data;
+
+  struct wlr_output_state state;
+  wlr_output_state_init(&state);
+  wlr_output_state_copy(&state, event->state);
+
+  gboolean should_commit = TRUE;
+  g_signal_emit(self, shoyu_output_signals[kSignalRequestState], 0, &state, &should_commit);
+
+  if (should_commit) wlr_output_commit_state(priv->wlr_output, &state);
+}
+
 static void shoyu_output_constructed(GObject* object) {
   G_OBJECT_CLASS(shoyu_output_parent_class)->constructed(object);
 
@@ -108,8 +129,14 @@ static void shoyu_output_constructed(GObject* object) {
   priv->frame.notify = shoyu_output_frame;
   wl_signal_add(&priv->wlr_output->events.frame, &priv->frame);
 
+  priv->request_state.notify = shoyu_output_request_state;
+  wl_signal_add(&priv->wlr_output->events.request_state, &priv->request_state);
+
   GtkWidgetPath* widget_path = gtk_widget_get_path(GTK_WIDGET(self));
   gtk_widget_path_append_type(widget_path, GTK_TYPE_WINDOW);
+
+  GtkStyleContext* context = gtk_widget_get_style_context(GTK_WIDGET(self));
+  gtk_style_context_add_class(context, GTK_STYLE_CLASS_BACKGROUND);
 }
 
 static void shoyu_output_dispose(GObject* object) {
@@ -163,6 +190,8 @@ static void shoyu_output_class_init(ShoyuOutputClass* klass) {
   GObjectClass* object_class = G_OBJECT_CLASS(klass);
   GtkWidgetClass* widget_class = GTK_WIDGET_CLASS(klass);
 
+  klass->request_state = shoyu_output_request_state_default;
+
   widget_class->draw = shoyu_output_draw;
 
   object_class->constructed = shoyu_output_constructed;
@@ -176,6 +205,10 @@ static void shoyu_output_class_init(ShoyuOutputClass* klass) {
   g_object_class_install_properties(object_class, kPropLast, shoyu_output_properties);
 
   shoyu_output_signals[kSignalDestroy] = g_signal_new("wl-destroy", shoyu_output_get_type(), G_SIGNAL_RUN_LAST, 0, NULL, NULL, NULL, G_TYPE_NONE, 0);
+  shoyu_output_signals[kSignalRequestState] = g_signal_new(
+    "request-state", shoyu_output_get_type(), G_SIGNAL_RUN_LAST,
+    G_STRUCT_OFFSET(ShoyuOutputClass, request_state),
+    g_signal_accumulator_first_wins, NULL, NULL, G_TYPE_BOOLEAN, 1, G_TYPE_POINTER);
 
   gtk_widget_class_set_css_name(widget_class, "output");
 }

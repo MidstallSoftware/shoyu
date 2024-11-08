@@ -12,6 +12,7 @@ typedef struct _ShoyuOutputPrivate {
 
   struct wl_listener destroy;
   struct wl_listener frame;
+  struct wl_listener request_state;
 } ShoyuOutputPrivate;
 
 #define SHOYU_OUTPUT(obj) \

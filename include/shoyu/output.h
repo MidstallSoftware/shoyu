@@ -14,6 +14,8 @@ struct _ShoyuCompositor;
 struct _ShoyuOutputClass {
   GtkBinClass parent_class;
 
+  gboolean (*request_state)(ShoyuOutput* self, struct wlr_output_state* state);
+
   gpointer padding[12];
 };
 
