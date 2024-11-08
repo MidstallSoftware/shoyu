@@ -77,6 +77,8 @@
                   meson
                   ninja
                   libdrm
+                  gobject-introspection
+                  vala
                 ];
               };
           in
