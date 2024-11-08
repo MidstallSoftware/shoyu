@@ -28,9 +28,9 @@
       let
         pkgs = nixpkgs.legacyPackages.${system}.extend (
           pkgs: prev: with pkgs; {
-            pkgsAsahi =
-              (if stdenv.targetPlatform.isAarch64 then pkgs else pkgsCross.aarch64-multiplatform).appendOverlays
-                [
+            pkgsAsahi = (
+              if stdenv.targetPlatform.isAarch64 then
+                pkgsCross.aarch64-multiplatform.appendOverlays [
                   nixos-apple-silicon.overlays.default
                   (pkgsAsahi: prev: {
                     mesa-asahi-edge = prev.mesa-asahi-edge.overrideAttrs (
@@ -56,7 +56,10 @@
 
                     mesa = if pkgsAsahi.targetPlatform.isAarch64 then pkgsAsahi.mesa-asahi-edge else prev.mesa;
                   })
-                ];
+                ]
+              else
+                null
+            );
           }
         );
       in
@@ -78,8 +81,8 @@
           in
           {
             default = mkShell pkgs;
-            asahi = mkShell pkgs.pkgsAsahi;
-          };
+          }
+          // lib.optionalAttrs (pkgs.pkgsAsahi != null) { asahi = mkShell pkgs.pkgsAsahi; };
       }
     );
 }
