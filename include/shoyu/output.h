@@ -7,14 +7,12 @@
 
 G_BEGIN_DECLS;
 
-G_DECLARE_DERIVABLE_TYPE(ShoyuOutput, shoyu_output, SHOYU, OUTPUT, GObject);
+G_DECLARE_DERIVABLE_TYPE(ShoyuOutput, shoyu_output, SHOYU, OUTPUT, GtkBin);
 
 struct _ShoyuCompositor;
 
 struct _ShoyuOutputClass {
-  GObjectClass parent_class;
-
-  GtkWidget* (*create_view)(ShoyuOutput* output);
+  GtkBinClass parent_class;
 
   gpointer padding[12];
 };

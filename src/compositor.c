@@ -75,7 +75,7 @@ static void shoyu_compositor_new_output(struct wl_listener* listener, void* data
   g_debug("Outputs changed (old: %u, new: %u)", len, new_len);
   g_assert(new_len > len);
 
-  g_signal_connect(output, "destroy", G_CALLBACK(shoyu_compositor_destroy_output), self);
+  g_signal_connect(output, "wl-destroy", G_CALLBACK(shoyu_compositor_destroy_output), self);
 
   g_debug("Created ShoyuOutput#%p", output);
 

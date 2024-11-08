@@ -7,7 +7,6 @@ typedef struct _ShoyuOutputPrivate {
 
   ShoyuCompositor* compositor;
   struct wlr_output* wlr_output;
-  GtkWidget* view;
 
   gboolean is_destroying;
 
