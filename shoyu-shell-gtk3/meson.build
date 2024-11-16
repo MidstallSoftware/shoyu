@@ -112,7 +112,7 @@ if build_gir
       libshell_gtk3_version,
       libshell_gtk3_config,
     ],
-    namespace: 'ShoyuShellGtk',
+    namespace: 'ShoyuShellGtk3',
     nsversion: shoyu_api_version,
     identifier_prefix: 'ShoyuShellGtk',
     symbol_prefix: 'shoyu_shell_gtk',

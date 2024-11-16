@@ -1,21 +1,37 @@
 libcompositor_cargs = [
-  '-DSHOYU_COMPOSITOR_COMPILATION',
+  '-DSHOYU_COMPILATION',
   '-DG_LOG_DOMAIN="ShoyuCompositor"',
   '-DSHOYU_COMPOSITOR_BINARY_VERSION="@0@"'.format(shoyu_binary_version),
   '-DSHOYU_COMPOSITOR_HOST="@0@"'.format(host_machine.system()),
   '-DSHOYU_COMPOSITOR_DATA_PREFIX="@0@"'.format(shoyu_prefix),
+  '-DWLR_USE_UNSTABLE',
 ]
 
 libcompositor_private_sources = files([])
 
-libcompositor_private_h_sources = files([])
+libcompositor_private_h_sources = files([
+  'compositor-private.h',
+  'input-private.h',
+  'output-private.h',
+  'wayland-event-source-private.h',
+])
 
 libcompositor_public_sources = files([
+  'compositor.c',
+  'input.c',
+  'main.c',
+  'output.c',
   'version.c',
+  'wayland-event-source.c',
 ])
 
 libcompositor_public_headers = files([
+  'compositor.h',
+  'input.h',
+  'main.h',
+  'output.h',
   'shoyu-compositor.h',
+  'wayland-event-source.h',
 ])
 
 install_headers(libcompositor_public_headers, subdir: 'shoyu-compositor/')
@@ -23,7 +39,7 @@ libcompositor_sources = libcompositor_public_sources + libcompositor_private_sou
 
 libcompositor_enums = gnome.mkenums_simple('compositorenumtypes',
   sources: libcompositor_public_headers,
-  decorator: 'SHOYU_COMPOSITOR_AVAILABLE_IN_ALL',
+  decorator: 'SHOYU_AVAILABLE_IN_ALL',
   body_prefix: '#include "config.h"',
   header_prefix: '#include "version/versionmacros.h"\n',
   install_dir: shoyu_includedir / 'shoyu-compositor',
@@ -53,17 +69,19 @@ libcompositor_version = configure_file(input: 'version.h.in',
   output: 'version.h',
   configuration: libcompositor_version_cdata,
   install: true,
-  install_dir: shoyu_includedir / 'shoyu-compositor',
-)
+  install_dir: shoyu_includedir / 'shoyu-compositor')
 
 libcompositor_gen_headers = [
-  #libcompositor_enums_h,
+  libcompositor_enums_h,
   libcompositor_config,
   libcompositor_version,
 ]
 
 libcompositor_deps = [
   gobject,
+  gio,
+  wlroots,
+  wayland_server,
 ]
 
 darwin_versions = [
@@ -98,11 +116,11 @@ libcompositor_dep_sources = [libcompositor_config, libcompositor_version]
 
 if build_gir
   gir_args = [
-    '-DSHOYU_COMPOSITOR_COMPILATION',
+    '-DSHOYU_COMPILATION',
     '--quiet',
   ]
 
-  libcompositor_gir_inc = [ 'GObject-2.0' ]
+  libcompositor_gir_inc = [ 'GObject-2.0', 'Gio-2.0' ]
 
   libcompositor_gir = gnome.generate_gir(libcompositor,
     sources: [
@@ -112,10 +130,10 @@ if build_gir
       libcompositor_version,
       libcompositor_config,
     ],
-    namespace: 'ShoyuCompositor',
+    namespace: 'Shoyu',
     nsversion: shoyu_api_version,
-    identifier_prefix: 'ShoyuCompositor',
-    symbol_prefix: 'shoyu_compositor',
+    identifier_prefix: 'Shoyu',
+    symbol_prefix: 'shoyu',
     includes: libcompositor_gir_inc,
     header: 'shoyu-compositor/shoyu-compositor.h',
     install: true,
@@ -129,7 +147,7 @@ endif
 if build_vapi
   libcompositor_vapi = gnome.generate_vapi('shoyu-compositor',
     sources: libcompositor_gir[0],
-    packages: ['gobject-2.0'],
+    packages: ['gobject-2.0', 'gio-2.0'],
     install: true)
 endif
 

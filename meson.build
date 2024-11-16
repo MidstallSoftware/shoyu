@@ -217,6 +217,9 @@ build_vapi = vapigen.found() and (get_option('introspection').enabled() or
 
 # Base dependencies
 gobject = dependency('gobject-2.0', version: '>= 2.81.0')
+gio = dependency('gio-2.0', version: '>= 2.81.0')
+wlroots = dependency('wlroots-0.18', version: '>= 0.18.0')
+wayland_server = dependency('wayland-server', version: '>= 1.23.0')
 
 shoyu_shells = []
 
@@ -249,6 +252,7 @@ endif
 # Add subprojects
 subdir('shoyu-compositor/version')
 subdir('shoyu-compositor')
+subdir('shoyu-compositor-runner')
 
 foreach shell : shoyu_shells
   subdir('shoyu-shell-@0@/version'.format(shell))

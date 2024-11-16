@@ -1,9 +1,11 @@
 [library]
 version = "@version@"
+browse_url = "https://github.com/MidstallSoftware/shoyu"
 repository_url = "https://github.com/MidstallSoftware/shoyu.git"
 authors = "Midstall Software"
 description = "Shoyu Compositor framework"
-dependencies = ["GObject-2.0"]
+license = "AGPL-3.0-only"
+dependencies = ["GObject-2.0", "Gio-2.0"]
 devhelp = true
 search_index = true
 
@@ -12,7 +14,18 @@ search_index = true
   description = "The base type system library"
   docs_url = "https://docs.gtk.org/gobject/"
 
+  [dependencies."Gio-2.0"]
+  name = "Gio"
+  description = "GObject Interfaces and Objects, Networking, IPC, and I/O"
+  docs_url = "https://docs.gtk.org/gio/"
+
 [theme]
 name = "basic"
 show_index_summary = true
 show_class_hierarchy = true
+
+[source-location]
+base_url = "https://github.com/MidstallSoftware/shoyu/tree/master"
+
+[extra]
+content_base_url = "https://github.com/MidstallSoftware/shoyu/tree/master/docs/reference/compositor"
