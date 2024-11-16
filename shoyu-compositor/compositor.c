@@ -1,7 +1,11 @@
+#include "shoyu-config.h"
+
 #include "compositor-private.h"
 #include "output-private.h"
 #include "input-private.h"
 #include "wayland-event-source.h"
+
+#include <glib/gi18n-lib.h>
 
 /**
  * ShoyuCompositor:
@@ -35,14 +39,14 @@ static void shoyu_compositor_destroy_output(ShoyuOutput* output, ShoyuCompositor
   self->outputs = g_list_remove(self->outputs, output);
 
   guint new_len = g_list_length(self->outputs);
-  g_debug("Outputs changed (old: %u, new: %u)", len, new_len);
+  g_debug(_("Outputs changed (old: %u, new: %u)"), len, new_len);
   g_assert(new_len < len);
 
   if (self->application != NULL) {
     g_application_release(self->application);
   }
 
-  g_debug("Destroyed ShoyuOutput#%p", output);
+  g_debug(_("Destroyed ShoyuOutput#%p"), output);
   g_object_unref(output);
 }
 
@@ -53,10 +57,10 @@ static void shoyu_compositor_destroy_input(ShoyuInput* input, ShoyuCompositor* s
   self->inputs = g_list_remove(self->inputs, input);
 
   guint new_len = g_list_length(self->inputs);
-  g_debug("Inputs changed (old: %u, new: %u)", len, new_len);
+  g_debug(_("Inputs changed (old: %u, new: %u)"), len, new_len);
   g_assert(new_len < len);
 
-  g_debug("Destroyed ShoyuInput#%p", input);
+  g_debug(_("Destroyed ShoyuInput#%p"), input);
   g_object_unref(input);
 }
 
@@ -93,10 +97,10 @@ static void shoyu_compositor_new_output(struct wl_listener* listener, void* data
   self->outputs = g_list_append(self->outputs, output);
 
   guint new_len = g_list_length(self->outputs);
-  g_debug("Outputs changed (old: %u, new: %u)", len, new_len);
+  g_debug(_("Outputs changed (old: %u, new: %u)"), len, new_len);
   g_assert(new_len > len);
 
-  g_debug("Created ShoyuOutput#%p", output);
+  g_debug(_("Created ShoyuOutput#%p"), output);
 
   if (self->application != NULL) {
     g_application_hold(self->application);

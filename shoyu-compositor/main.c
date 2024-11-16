@@ -1,4 +1,7 @@
+#include "shoyu-config.h"
 #include "main.h"
+
+#include <glib/gi18n-lib.h>
 #include <wlr/util/log.h>
 
 static gboolean shoyu_initialized = FALSE;
@@ -20,6 +23,27 @@ static void log_handler(enum wlr_log_importance importance, const char* fmt, va_
   }
 }
 
+static void setlocale_initialization(void) {
+  static gboolean initialized = FALSE;
+
+  if (initialized)
+    return;
+  initialized = TRUE;
+
+  if (!setlocale(LC_ALL, "")) {
+    g_warning("Locale not supported by C library.\n\tUsing the fallback 'C' locale.");
+  }
+}
+
+static void gettext_initialization(void) {
+  setlocale_initialization();
+
+  bindtextdomain(GETTEXT_PACKAGE, SHOYU_LOCALEDIR);
+#ifdef HAVE_BIND_TEXTDOMAIN_CODESET
+  bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
+#endif
+}
+
 void shoyu_init(void) {
   if (!shoyu_init_check()) {
     g_warning("Failed to initialize");
@@ -30,6 +54,7 @@ void shoyu_init(void) {
 gboolean shoyu_init_check(void) {
   if (shoyu_initialized) return TRUE;
 
+  setlocale_initialization();
   wlr_log_init(WLR_DEBUG, log_handler);
 
   shoyu_initialized = TRUE;

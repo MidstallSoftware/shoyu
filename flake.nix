@@ -89,6 +89,10 @@
         packages = {
           default = pkgs.shoyu;
           llvm = pkgs.pkgsLLVM.shoyu;
+        }
+        // lib.optionalAttrs (pkgs.pkgsAsahi != null) {
+          asahi = pkgs.pkgsAsahi.shoyu;
+          asahi-llvm = pkgs.pkgsLLVM.pkgsAsahi.shoyu;
         };
 
         devShells = {

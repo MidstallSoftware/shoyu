@@ -249,6 +249,9 @@ if build_gtk4
   shoyu_shells += 'gtk4'
 endif
 
+configure_file(output: 'shoyu-config.h',
+  configuration: cdata)
+
 # Add subprojects
 subdir('shoyu-compositor/version')
 subdir('shoyu-compositor')
@@ -258,6 +261,8 @@ foreach shell : shoyu_shells
   subdir('shoyu-shell-@0@/version'.format(shell))
   subdir('shoyu-shell-@0@'.format(shell))
 endforeach
+
+subdir('po')
 
 # Documentation
 subdir('docs/reference')
