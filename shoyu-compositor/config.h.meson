@@ -1,0 +1,11 @@
+#pragma once
+
+#if !defined (__SHOYU_COMPOSITOR_H_INSIDE__) && !defined (SHOYU_COMPOSITOR_COMPILATION)
+#error "Only <shoyu-compositor/shoyu-compositor.h> can be included directly."
+#endif
+
+#include <glib.h>
+
+G_BEGIN_DECLS
+
+G_END_DECLS

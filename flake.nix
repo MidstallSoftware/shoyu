@@ -6,7 +6,7 @@
     systems.url = "github:nix-systems/default-linux";
     flake-utils.url = "github:numtide/flake-utils";
     nixos-apple-silicon = {
-      url = "github:tpwrules/nixos-apple-silicon/release-2024-07-19";
+      url = "github:tpwrules/nixos-apple-silicon/release-2024-11-12";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -29,63 +29,73 @@
         pkgs = nixpkgs.legacyPackages.${system}.extend (
           pkgs: prev: with pkgs; {
             pkgsAsahi = (
-              if stdenv.targetPlatform.isAarch64 then
-                pkgsCross.aarch64-multiplatform.appendOverlays [
+              if stdenv.hostPlatform.isAarch64 then
+                pkgs.appendOverlays [
                   nixos-apple-silicon.overlays.default
                   (pkgsAsahi: prev: {
-                    mesa-asahi-edge = prev.mesa-asahi-edge.overrideAttrs (
-                      super: prev: {
-                        meta = prev.meta // {
-                          platforms = [
-                            "i686-linux"
-                            "x86_64-linux"
-                            "x86_64-darwin"
-                            "armv5tel-linux"
-                            "armv6l-linux"
-                            "armv7l-linux"
-                            "armv7a-linux"
-                            "aarch64-linux"
-                            "powerpc64-linux"
-                            "powerpc64le-linux"
-                            "aarch64-darwin"
-                            "riscv64-linux"
-                          ];
-                        };
-                      }
-                    );
-
-                    mesa = if pkgsAsahi.targetPlatform.isAarch64 then pkgsAsahi.mesa-asahi-edge else prev.mesa;
+                    mesa = pkgsAsahi.mesa-asahi-edge;
                   })
                 ]
               else
                 null
             );
+
+            shoyu = stdenv.mkDerivation {
+              pname = "shoyu";
+              version = self.shortRev or "dirty";
+
+              outputs = [ "out" "dev" "devdoc" ];
+
+              src = lib.cleanSource self;
+
+              nativeBuildInputs = with pkgs; [
+                ninja
+                meson
+                python3
+                gobject-introspection
+                gi-docgen
+                pkg-config
+                vala
+              ];
+
+              buildInputs = [
+                glib
+                wlroots_0_18
+                gtk3
+                gtk4
+              ];
+
+              mesonFlags = [
+                (lib.mesonBool "documentation" true)
+              ];
+
+              postPatch = ''
+                files=(
+                  build-aux/meson/gen-visibility-macros.py
+                )
+
+                chmod +x ''${files[@]}
+                patchShebangs ''${files[@]}
+              '';
+
+              postFixup = ''
+                moveToOutput "share/doc" "$devdoc"
+              '';
+            };
           }
         );
       in
       {
-        devShells =
-          let
-            mkShell =
-              pkgs:
-              pkgs.mkShell {
-                packages = with pkgs; [
-                  pkg-config
-                  gtk3
-                  gtk4
-                  wlroots_0_18
-                  meson
-                  ninja
-                  libdrm
-                  gobject-introspection
-                  vala
-                ];
-              };
-          in
-          {
-            default = mkShell pkgs;
+        packages.default = pkgs.shoyu;
+
+        devShells = {
+            default = pkgs.shoyu;
+            llvm = pkgs.pkgsLLVM.shoyu;
           }
-          // lib.optionalAttrs (pkgs.pkgsAsahi != null) { asahi = mkShell pkgs.pkgsAsahi; };
+          // lib.optionalAttrs (pkgs.pkgsAsahi != null) {
+            asahi = pkgs.pkgsAsahi.shoyu;
+            asahi-llvm = pkgs.pkgsLLVM.pkgsAsahi.shoyu;
+          };
       }
     );
 }
