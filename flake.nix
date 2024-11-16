@@ -86,7 +86,10 @@
         );
       in
       {
-        packages.default = pkgs.shoyu;
+        packages = {
+          default = pkgs.shoyu;
+          llvm = pkgs.pkgsLLVM.shoyu;
+        };
 
         devShells = {
             default = pkgs.shoyu;
