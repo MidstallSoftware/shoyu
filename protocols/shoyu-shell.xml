@@ -5,6 +5,11 @@
       The global interface exposing Shoyu Shell capabilities and control.
     </description>
 
+    <enum name="error">
+      <entry name="output_already_constructed" value="0" summary="wl_output already has a shoyu shell output" />
+      <entry name="surface_already_constructed" value="1" summary="wl_surface already has a shoyu shell surface" />
+    </enum>
+
     <request name="get_output">
       <arg name="id" type="new_id" interface="shoyu_shell_output" />
       <arg name="output" type="object" interface="wl_output" />

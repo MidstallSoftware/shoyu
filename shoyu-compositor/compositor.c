@@ -520,7 +520,26 @@ gboolean shoyu_compositor_start(ShoyuCompositor* self) {
   return TRUE;
 }
 
+/**
+ * shoyu_compositor_get_shell:
+ * @self: A #ShoyuCompositor
+ *
+ * Returns: (transfer none): A #ShoyuShell
+ */
 ShoyuShell* shoyu_compositor_get_shell(ShoyuCompositor* self) {
   g_return_val_if_fail(SHOYU_IS_COMPOSITOR(self), FALSE);
   return self->shell;
+}
+
+ShoyuOutput* shoyu_compositor_get_output(ShoyuCompositor* self, struct wlr_output* wlr_output) {
+  g_return_val_if_fail(SHOYU_IS_COMPOSITOR(self), NULL);
+
+  for (GList* item = self->outputs; item != NULL; item = item->next) {
+    ShoyuOutput* output = SHOYU_OUTPUT(item->data);
+
+    if (output->is_invalidated) continue;
+    if (output->wlr_output == wlr_output) return output;
+  }
+
+  return NULL;
 }

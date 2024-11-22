@@ -7,13 +7,18 @@ libcompositor_cargs = [
   '-DWLR_USE_UNSTABLE',
 ]
 
-libcompositor_private_sources = files([])
+libcompositor_private_sources = files([
+  'shell-output.c',
+  'shell-surface.c',
+])
 
 libcompositor_private_h_sources = files([
   'compositor-private.h',
   'input-private.h',
   'output-private.h',
   'shell-private.h',
+  'shell-output-private.h',
+  'shell-surface-private.h',
   'wayland-event-source-private.h',
   'xdg-toplevel-private.h',
 ])

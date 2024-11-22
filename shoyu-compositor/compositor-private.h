@@ -40,7 +40,7 @@ struct _ShoyuCompositor {
   GList* xdg_toplevels;
   struct wl_listener new_xdg_toplevel;
 
-  char* socket;
+  const char* socket;
 };
 
 struct _ShoyuCompositorClass {
@@ -182,3 +182,5 @@ struct _ShoyuCompositorClass {
    */
   void (*started)(ShoyuCompositor* self);
 };
+
+ShoyuOutput* shoyu_compositor_get_output(ShoyuCompositor* self, struct wlr_output* wlr_output);

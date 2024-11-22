@@ -10,6 +10,7 @@
 enum {
   PROP_0 = 0,
   PROP_COMPOSITOR,
+  PROP_SURFACE,
   N_PROPERTIES,
 
   SIG_DESTROY = 0,
@@ -85,6 +86,9 @@ static void shoyu_output_get_property(GObject* object, guint prop_id, GValue* va
     case PROP_COMPOSITOR:
       g_value_set_object(value, G_OBJECT(self->compositor));
       break;
+    case PROP_SURFACE:
+      g_value_set_pointer(value, self->wlr_surface);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
       break;
@@ -102,6 +106,11 @@ static void shoyu_output_class_init(ShoyuOutputClass* class) {
       "compositor", "Shoyu Compositor",
       "The compositor the output comes from.",
       SHOYU_TYPE_COMPOSITOR, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+
+  shoyu_output_props[PROP_SURFACE] = g_param_spec_pointer(
+      "surface", "Wayland surface",
+      "The surface which is to be rendered onto the output.",
+      G_PARAM_READABLE);
 
   g_object_class_install_properties(object_class, N_PROPERTIES, shoyu_output_props);
 
@@ -209,4 +218,12 @@ void shoyu_output_unrealize(ShoyuOutput* self) {
   self->is_invalidated = TRUE;
 
   g_signal_emit(self, shoyu_output_sigs[SIG_UNREALIZED], 0);
+}
+
+void shoyu_output_set_surface(ShoyuOutput* self, struct wlr_surface* wlr_surface) {
+  g_return_if_fail(SHOYU_IS_OUTPUT(self));
+
+  self->wlr_surface = wlr_surface;
+
+  g_object_notify_by_pspec(G_OBJECT(self), shoyu_output_props[PROP_SURFACE]);
 }
