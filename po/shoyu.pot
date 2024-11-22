@@ -1,0 +1,43 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the shoyu package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: shoyu\n"
+"Report-Msgid-Bugs-To: \"https://github.com/MidstallSoftware/shoyu/issues/\"\n"
+"POT-Creation-Date: 2024-11-15 23:08-0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: shoyu-compositor/compositor.c:42 shoyu-compositor/compositor.c:100
+#, c-format
+msgid "Outputs changed (old: %u, new: %u)"
+msgstr ""
+
+#: shoyu-compositor/compositor.c:49
+#, c-format
+msgid "Destroyed ShoyuOutput#%p"
+msgstr ""
+
+#: shoyu-compositor/compositor.c:60
+#, c-format
+msgid "Inputs changed (old: %u, new: %u)"
+msgstr ""
+
+#: shoyu-compositor/compositor.c:63
+#, c-format
+msgid "Destroyed ShoyuInput#%p"
+msgstr ""
+
+#: shoyu-compositor/compositor.c:103
+#, c-format
+msgid "Created ShoyuOutput#%p"
+msgstr ""

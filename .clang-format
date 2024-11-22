@@ -1,0 +1,7 @@
+BasedOnStyle: LLVM
+IndentWidth: 2
+BracedInitializerIndentWidth: 2
+IndentAccessModifiers: true
+IndentCaseBlocks: true
+IndentCaseLabels: true
+AlignOperands: true

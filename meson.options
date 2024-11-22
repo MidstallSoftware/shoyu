@@ -1,0 +1,33 @@
+option('introspection',
+  type: 'feature',
+  value: 'auto',
+  yield: true,
+  description: 'Build introspection data (requires gobject-introspection)')
+
+option('vapigen',
+  type: 'feature',
+  value: 'auto',
+  yield: true,
+  description: 'Generate vapi files')
+
+option('documentation',
+  type: 'boolean',
+  value: false,
+  description: 'Build API reference and tools documentation')
+
+option('gtk3',
+  type: 'feature',
+  value: 'auto',
+  yield:  true,
+  description: 'Build the GTK 3 shell library')
+
+option('gtk4',
+  type: 'feature',
+  value: 'auto',
+  yield:  true,
+  description: 'Build the GTK 4 shell library')
+
+option('build-examples',
+  type: 'boolean',
+  value: true,
+  description: 'Build examples')

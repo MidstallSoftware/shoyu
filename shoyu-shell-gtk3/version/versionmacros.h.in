@@ -1,0 +1,123 @@
+#if !defined (__SHOYU_SHELL_GTK_H_INSIDE__) && !defined (SHOYU_SHELL_GTK_COMPILATION)
+#error "Only <shoyu-shell-gtk3/shoyu-shell-gtk3.h> can be included directly."
+#endif
+
+#pragma once
+
+#include <glib.h>
+
+#if !defined(SHOYU_SHELL_GTK_DISABLE_DEPRECATION_WARNINGS) && \
+    (G_GNUC_CHECK_VERSION(4, 6) ||                 \
+     __clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 4))
+#define _SHOYU_SHELL_GTK_GNUC_DO_PRAGMA(x) _Pragma(G_STRINGIFY (x))
+#define SHOYU_SHELL_GTK_DEPRECATED_MACRO _SHOYU_SHELL_GTK_GNUC_DO_PRAGMA(GCC warning "Deprecated pre-processor symbol")
+#define SHOYU_SHELL_GTK_DEPRECATED_MACRO_FOR(f) \
+  _SHOYU_SHELL_GTK_GNUC_DO_PRAGMA(GCC warning G_STRINGIFY (Deprecated pre-processor symbol: replace with #f))
+#define SHOYU_SHELL_GTK_UNAVAILABLE_MACRO(maj,min) \
+  _SHOYU_SHELL_GTK_GNUC_DO_PRAGMA(GCC warning G_STRINGIFY (Not available before maj.min))
+#else
+#define SHOYU_SHELL_GTK_DEPRECATED_MACRO
+#define SHOYU_SHELL_GTK_DEPRECATED_MACRO_FOR(f)
+#define SHOYU_SHELL_GTK_UNAVAILABLE_MACRO(maj,min)
+#endif
+
+#if !defined(SHOYU_SHELL_GTK_DISABLE_DEPRECATION_WARNINGS) && \
+    (G_GNUC_CHECK_VERSION(6, 1) ||                 \
+     (defined (__clang_major__) && (__clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 0))))
+#define SHOYU_SHELL_GTK_DEPRECATED_ENUMERATOR G_DEPRECATED
+#define SHOYU_SHELL_GTK_DEPRECATED_ENUMERATOR_FOR(f) G_DEPRECATED_FOR(f)
+#define SHOYU_SHELL_GTK_UNAVAILABLE_ENUMERATOR(maj,min) G_UNAVAILABLE(maj,min)
+#else
+#define SHOYU_SHELL_GTK_DEPRECATED_ENUMERATOR
+#define SHOYU_SHELL_GTK_DEPRECATED_ENUMERATOR_FOR(f)
+#define SHOYU_SHELL_GTK_UNAVAILABLE_ENUMERATOR(maj,min)
+#endif
+
+#if !defined(SHOYU_SHELL_GTK_DISABLE_DEPRECATION_WARNINGS) && \
+    (G_GNUC_CHECK_VERSION(3, 1) ||                 \
+     (defined (__clang_major__) && (__clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 0))))
+#define SHOYU_SHELL_GTK_DEPRECATED_TYPE G_DEPRECATED
+#define SHOYU_SHELL_GTK_DEPRECATED_TYPE_FOR(f) G_DEPRECATED_FOR(f)
+#define SHOYU_SHELL_GTK_UNAVAILABLE_TYPE(maj,min) G_UNAVAILABLE(maj,min)
+#else
+#define SHOYU_SHELL_GTK_DEPRECATED_TYPE
+#define SHOYU_SHELL_GTK_DEPRECATED_TYPE_FOR(f)
+#define SHOYU_SHELL_GTK_UNAVAILABLE_TYPE(maj,min)
+#endif
+
+@SHOYU_SHELL_GTK_VERSIONS@
+
+/* evaluates to the current stable version; for development cycles,
+ * this means the next stable target, with a hard backstop to the
+ * beginning of the stable series
+ */
+#if SHOYU_SHELL_GTK_MAJOR_VERSION >= 4 && (SHOYU_SHELL_GTK_MINOR_VERSION % 2)
+# define SHOYU_SHELL_GTK_VERSION_CUR_STABLE         (G_ENCODE_VERSION (SHOYU_SHELL_GTK_MAJOR_VERSION, SHOYU_SHELL_GTK_MINOR_VERSION + 1))
+#elif G_ENCODE_VERSION (SHOYU_SHELL_GTK_MAJOR_VERSION, SHOYU_SHELL_GTK_MINOR_VERSION) > SHOYU_SHELL_GTK_VERSION_0_0
+# define SHOYU_SHELL_GTK_VERSION_CUR_STABLE         (G_ENCODE_VERSION (SHOYU_SHELL_GTK_MAJOR_VERSION, SHOYU_SHELL_GTK_MINOR_VERSION))
+#else
+# define SHOYU_SHELL_GTK_VERSION_CUR_STABLE         SHOYU_SHELL_GTK_VERSION_0_0
+#endif
+
+/* evaluates to the previous stable version, with a hard backstop
+ * to the beginning of the stable series
+ */
+#if SHOYU_SHELL_GTK_MAJOR_VERSION >= 4 && (SHOYU_SHELL_GTK_MINOR_VERSION % 2)
+# define SHOYU_SHELL_GTK_VERSION_PREV_STABLE        (G_ENCODE_VERSION (SHOYU_SHELL_GTK_MAJOR_VERSION, SHOYU_SHELL_GTK_MINOR_VERSION - 1))
+#elif SHOYU_SHELL_GTK_MAJOR_VERSION >= 4 && SHOYU_SHELL_GTK_MINOR_VERSION > 2
+# define SHOYU_SHELL_GTK_VERSION_PREV_STABLE        (G_ENCODE_VERSION (SHOYU_SHELL_GTK_MAJOR_VERSION, SHOYU_SHELL_GTK_MINOR_VERSION - 2))
+#else
+# define SHOYU_SHELL_GTK_VERSION_PREV_STABLE        SHOYU_SHELL_GTK_VERSION_0_0
+#endif
+
+/**
+ * SHOYU_SHELL_GTK_VERSION_MIN_REQUIRED:
+ *
+ * A macro that should be defined by the user prior to including
+ * the `gdk.h` header.
+ *
+ * The definition should be one of the predefined SHOYU version
+ * macros: %SHOYU_SHELL_GTK_VERSION_0_0, %SHOYU_SHELL_GTK_VERSION_4_2,...
+ *
+ * This macro defines the lower bound for the SHOYU API to use.
+ *
+ * If a function has been deprecated in a newer version of SHOYU,
+ * it is possible to use this symbol to avoid the compiler warnings
+ * without disabling warning for every deprecated function.
+ */
+#ifndef SHOYU_SHELL_GTK_VERSION_MIN_REQUIRED
+# define SHOYU_SHELL_GTK_VERSION_MIN_REQUIRED      (SHOYU_SHELL_GTK_VERSION_CUR_STABLE)
+#endif
+
+/**
+ * SHOYU_SHELL_GTK_VERSION_MAX_ALLOWED:
+ *
+ * A macro that should be defined by the user prior to including
+ * the `gdk.h` header.
+ *
+ * The definition should be one of the predefined SHOYU version
+ * macros: %SHOYU_SHELL_GTK_VERSION_0_0, %SHOYU_SHELL_GTK_VERSION_4_2,...
+ *
+ * This macro defines the upper bound for the SHOYU API to use.
+ *
+ * If a function has been introduced in a newer version of SHOYU,
+ * it is possible to use this symbol to get compiler warnings when
+ * trying to use that function.
+ */
+#ifndef SHOYU_SHELL_GTK_VERSION_MAX_ALLOWED
+# if SHOYU_SHELL_GTK_VERSION_MIN_REQUIRED > SHOYU_SHELL_GTK_VERSION_PREV_STABLE
+#  define SHOYU_SHELL_GTK_VERSION_MAX_ALLOWED      SHOYU_SHELL_GTK_VERSION_MIN_REQUIRED
+# else
+#  define SHOYU_SHELL_GTK_VERSION_MAX_ALLOWED      SHOYU_SHELL_GTK_VERSION_CUR_STABLE
+# endif
+#endif
+
+/* sanity checks */
+#if SHOYU_SHELL_GTK_VERSION_MAX_ALLOWED < SHOYU_SHELL_GTK_VERSION_MIN_REQUIRED
+# error "SHOYU_SHELL_GTK_VERSION_MAX_ALLOWED must be >= SHOYU_SHELL_GTK_VERSION_MIN_REQUIRED"
+#endif
+#if SHOYU_SHELL_GTK_VERSION_MIN_REQUIRED < SHOYU_SHELL_GTK_VERSION_0_0
+# error "SHOYU_SHELL_GTK_VERSION_MIN_REQUIRED must be >= SHOYU_SHELL_GTK_VERSION_0_0"
+#endif
+
+#include <shoyu-shell-gtk3/version/visibility.h>

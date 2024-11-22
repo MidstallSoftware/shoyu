@@ -1,0 +1,9 @@
+shoyu-compositor-runner/main.c
+shoyu-shell-gtk3/version.c
+shoyu-shell-gtk4/version.c
+shoyu-compositor/compositor.c
+shoyu-compositor/wayland-event-source.c
+shoyu-compositor/version.c
+shoyu-compositor/main.c
+shoyu-compositor/output.c
+shoyu-compositor/input.c
