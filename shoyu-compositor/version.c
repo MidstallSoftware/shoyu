@@ -1,5 +1,5 @@
-#include "config.h"
 #include "version.h"
+#include "config.h"
 
 /**
  * shoyu_get_major_version:
@@ -8,9 +8,7 @@
  *
  * Returns: the major version number of the Shoyu Compositor library
  */
-guint shoyu_get_major_version(void) {
-  return SHOYU_MAJOR_VERSION;
-}
+guint shoyu_get_major_version(void) { return SHOYU_MAJOR_VERSION; }
 
 /**
  * shoyu_get_minor_version:
@@ -19,9 +17,7 @@ guint shoyu_get_major_version(void) {
  *
  * Returns: the minor version number of the Shoyu Compositor library
  */
-guint shoyu_get_minor_version(void) {
-  return SHOYU_MINOR_VERSION;
-}
+guint shoyu_get_minor_version(void) { return SHOYU_MINOR_VERSION; }
 
 /**
  * shoyu_get_micro_version:
@@ -30,9 +26,7 @@ guint shoyu_get_minor_version(void) {
  *
  * Returns: the micro version number of the Shoyu Compositor library
  */
-guint shoyu_get_micro_version(void) {
-  return SHOYU_MICRO_VERSION;
-}
+guint shoyu_get_micro_version(void) { return SHOYU_MICRO_VERSION; }
 
 /**
  * shoyu_get_binary_age:
@@ -43,9 +37,7 @@ guint shoyu_get_micro_version(void) {
  *
  * Returns: the binary age of the Shoyu Compositor library
  */
-guint shoyu_get_binary_age(void) {
-  return SHOYU_MICRO_VERSION;
-}
+guint shoyu_get_binary_age(void) { return SHOYU_MICRO_VERSION; }
 
 /**
  * shoyu_get_interface_age:
@@ -56,9 +48,7 @@ guint shoyu_get_binary_age(void) {
  *
  * Returns: the interface age of the Shoyu Compositor library
  */
-guint shoyu_get_interface_age(void) {
-  return SHOYU_MICRO_VERSION;
-}
+guint shoyu_get_interface_age(void) { return SHOYU_MICRO_VERSION; }
 
 /**
  * shoyu_check_version:
@@ -69,12 +59,12 @@ guint shoyu_get_interface_age(void) {
  * Checks that the Shoyu Compositor library in use is compatible with the
  * given version.
  *
- * Returns: (nullable): %NULL if the Shoyu Compositor library is compatible with the
- *   given version, or a string describing the version mismatch.
- *   The returned string is owned by Shoyu Compositor and should not be modified
- *   or freed.
+ * Returns: (nullable): %NULL if the Shoyu Compositor library is compatible with
+ * the given version, or a string describing the version mismatch. The returned
+ * string is owned by Shoyu Compositor and should not be modified or freed.
  */
-const char* shoyu_check_version(guint required_major, guint required_minor, guint required_micro) {
+const char *shoyu_check_version(guint required_major, guint required_minor,
+                                guint required_micro) {
   int shoyu_effective_micro = 100 * SHOYU_MINOR_VERSION + SHOYU_MICRO_VERSION;
   int required_effective_micro = 100 * required_minor + required_micro;
 

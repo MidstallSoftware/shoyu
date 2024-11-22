@@ -4,20 +4,20 @@
 #include <shoyu-shell-server-protocol.h>
 
 struct _ShoyuShell {
-  GObject parent_instance;
+    GObject parent_instance;
 
-  ShoyuCompositor* compositor;
+    ShoyuCompositor *compositor;
 
-  struct wl_global* global;
-  struct wl_listener display_destroy;
+    struct wl_global *global;
+    struct wl_listener display_destroy;
 
-  struct wl_resource* resource;
-  struct wl_client* client;
-  uint32_t version;
+    struct wl_resource *resource;
+    struct wl_client *client;
+    uint32_t version;
 };
 
 struct _ShoyuShellClass {
-  GObjectClass parent_class;
+    GObjectClass parent_class;
 };
 
-ShoyuShell* shoyu_shell_new(ShoyuCompositor* compositor);
+ShoyuShell *shoyu_shell_new(ShoyuCompositor *compositor);
