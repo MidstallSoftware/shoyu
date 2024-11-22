@@ -8,13 +8,17 @@ libshell_gtk3_cargs = [
 
 libshell_gtk3_private_sources = files([])
 
-libshell_gtk3_private_h_sources = files([])
+libshell_gtk3_private_h_sources = files([
+  'main-private.h',
+])
 
 libshell_gtk3_public_sources = files([
+  'main.c',
   'version.c',
 ])
 
 libshell_gtk3_public_headers = files([
+  'main.h',
   'shoyu-shell-gtk3.h',
 ])
 
@@ -57,13 +61,16 @@ libshell_gtk3_version = configure_file(input: 'version.h.in',
 )
 
 libshell_gtk3_gen_headers = [
-  #libshell_gtk3_enums_h,
+  libshell_gtk3_enums_h,
   libshell_gtk3_config,
   libshell_gtk3_version,
 ]
 
 libshell_gtk3_deps = [
   gobject,
+  gdk3_wayland,
+  gtk3,
+  wayland_client,
 ]
 
 darwin_versions = [
@@ -85,8 +92,9 @@ libshell_gtk3_sources += [
 libshell_gtk3 = shared_library('shoyu-shell-gtk3',
   sources: libshell_gtk3_sources,
   c_args: libshell_gtk3_cargs + common_cflags,
-  include_directories: [conf_inc, libshell_gtk3_inc],
+  include_directories: [conf_inc, libshell_gtk3_inc, proto_inc],
   dependencies: libshell_gtk3_deps,
+  link_whole: [libwayland_client],
   link_args: common_ldflags,
   soversion: shoyu_soversion,
   version: shoyu_library_version,
@@ -102,7 +110,7 @@ if build_gir
     '--quiet',
   ]
 
-  libshell_gtk3_gir_inc = [ 'GObject-2.0' ]
+  libshell_gtk3_gir_inc = [ 'GObject-2.0', 'Gtk-3.0' ]
 
   libshell_gtk3_gir = gnome.generate_gir(libshell_gtk3,
     sources: [
@@ -130,7 +138,7 @@ endif
 if build_vapi
   libshell_gtk3_vapi = gnome.generate_vapi('shoyu-shell-gtk3',
     sources: libshell_gtk3_gir[0],
-    packages: ['gobject-2.0'],
+    packages: ['gobject-2.0', 'gtk+-3.0'],
     install: true)
 endif
 

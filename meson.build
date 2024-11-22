@@ -222,6 +222,7 @@ gobject = dependency('gobject-2.0', version: '>= 2.81.0')
 gio = dependency('gio-2.0', version: '>= 2.81.0')
 wlroots = dependency('wlroots-0.18', version: '>= 0.18.0')
 wayland_server = dependency('wayland-server', version: '>= 1.23.0')
+wayland_client = dependency('wayland-client', version: '>= 1.23.0')
 
 shoyu_shells = []
 
@@ -233,6 +234,7 @@ if not gtk3.found() and get_option('gtk3').enabled()
 endif
 
 build_gtk3 = gtk3.found() and (get_option('gtk3').enabled() or get_option('gtk3').allowed())
+gdk3_wayland = dependency('gdk-wayland-3.0', required: build_gtk3)
 
 # GTK 4
 if build_gtk3
