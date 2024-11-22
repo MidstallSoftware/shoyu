@@ -1,9 +1,10 @@
 #include "shoyu-config.h"
 
 #include "compositor-private.h"
-#include "shell-private.h"
 #include "output-private.h"
 #include "input-private.h"
+#include "shell-private.h"
+#include "surface-private.h"
 #include "wayland-event-source.h"
 #include "xdg-toplevel-private.h"
 
@@ -29,6 +30,8 @@ enum {
   SIG_OUTPUT_REMOVED,
   SIG_INPUT_ADDED,
   SIG_INPUT_REMOVED,
+  SIG_SURFACE_ADDED,
+  SIG_SURFACE_REMOVED,
   SIG_XDG_TOPLEVEL_ADDED,
   SIG_XDG_TOPLEVEL_REMOVED,
   SIG_STARTED,
@@ -72,6 +75,20 @@ static void shoyu_compositor_destroy_input(ShoyuInput* input, ShoyuCompositor* s
   g_object_unref(input);
 }
 
+static void shoyu_compositor_destroy_surface(ShoyuSurface* surface, ShoyuCompositor* self) {
+  g_signal_emit(self, shoyu_compositor_sigs[SIG_SURFACE_REMOVED], 0, surface);
+
+  guint len = g_list_length(self->surfaces);
+  self->surfaces = g_list_remove(self->surfaces, surface);
+
+  guint new_len = g_list_length(self->surfaces);
+  g_debug(_("Surfaces changed (old: %u, new: %u)"), len, new_len);
+  g_assert(new_len < len);
+
+  g_debug(_("Destroyed ShoyuSurface#%p"), surface);
+  g_object_unref(surface);
+}
+
 static void shoyu_compositor_destroy_xdg_toplevel(ShoyuXdgToplevel* toplevel, ShoyuCompositor* self) {
   g_signal_emit(self, shoyu_compositor_sigs[SIG_XDG_TOPLEVEL_REMOVED], 0, toplevel);
 
@@ -84,14 +101,6 @@ static void shoyu_compositor_destroy_xdg_toplevel(ShoyuXdgToplevel* toplevel, Sh
 
   g_debug(_("Destroyed ShoyuXdgToplevel#%p"), toplevel);
   g_object_unref(toplevel);
-}
-
-static void shoyu_compositor_new_surface(struct wl_listener* listener, void* data) {
-  ShoyuCompositor* self = wl_container_of(listener, self, new_surface);
-
-  struct wlr_surface* wlr_surface = data;
-
-  // TODO: handle proper addition of the surface
 }
 
 static void shoyu_compositor_new_output(struct wl_listener* listener, void* data) {
@@ -165,6 +174,32 @@ static void shoyu_compositor_new_input(struct wl_listener* listener, void* data)
   g_signal_emit(self, shoyu_compositor_sigs[SIG_INPUT_ADDED], 0, input);
 }
 
+static void shoyu_compositor_new_surface(struct wl_listener* listener, void* data) {
+  ShoyuCompositor* self = wl_container_of(listener, self, new_surface);
+  ShoyuCompositorClass* class = SHOYU_COMPOSITOR_GET_CLASS(self);
+
+  struct wlr_surface* wlr_surface = data;
+
+  g_return_if_fail(class->create_surface != NULL);
+
+  ShoyuSurface* surface = class->create_surface(self, wlr_surface);
+  if (surface == NULL) return;
+
+  g_signal_connect(surface, "destroy", G_CALLBACK(shoyu_compositor_destroy_surface), self);
+
+  shoyu_surface_realize(surface, wlr_surface);
+
+  guint len = g_list_length(self->surfaces);
+  self->surfaces = g_list_append(self->surfaces, surface);
+
+  guint new_len = g_list_length(self->surfaces);
+  g_debug("Surfaces changed (old: %u, new: %u)", len, new_len);
+  g_assert(new_len > len);
+
+  g_debug("Created ShoyuSurface#%p", surface);
+  g_signal_emit(self, shoyu_compositor_sigs[SIG_SURFACE_ADDED], 0, surface);
+}
+
 static void shoyu_compositor_new_xdg_toplevel(struct wl_listener* listener, void* data) {
   ShoyuCompositor* self = wl_container_of(listener, self, new_xdg_toplevel);
   ShoyuCompositorClass* class = SHOYU_COMPOSITOR_GET_CLASS(self);
@@ -232,6 +267,7 @@ static void shoyu_compositor_finalize(GObject* object) {
 
   g_clear_list(&self->outputs, (GDestroyNotify) g_object_unref);
   g_clear_list(&self->inputs, (GDestroyNotify) g_object_unref);
+  g_clear_list(&self->surfaces, (GDestroyNotify) g_object_unref);
   g_clear_list(&self->xdg_toplevels, (GDestroyNotify) g_object_unref);
 
   g_clear_object(&self->shell);
@@ -307,6 +343,14 @@ static ShoyuInput* shoyu_compositor_real_create_input(ShoyuCompositor* self, str
   return input;
 }
 
+static ShoyuSurface* shoyu_compositor_real_create_surface(ShoyuCompositor* self, struct wlr_surface* wlr_surface) {
+  ShoyuCompositorClass* class = SHOYU_COMPOSITOR_GET_CLASS(self);
+
+  ShoyuSurface* surface = g_object_new(class->surface_type, "compositor", self, NULL);
+  g_return_val_if_fail(surface != NULL, NULL);
+  return surface;
+}
+
 static ShoyuXdgToplevel* shoyu_compositor_real_create_xdg_toplevel(ShoyuCompositor* self, struct wlr_xdg_toplevel* wlr_xdg_toplevel) {
   ShoyuCompositorClass* class = SHOYU_COMPOSITOR_GET_CLASS(self);
 
@@ -325,6 +369,7 @@ static void shoyu_compositor_class_init(ShoyuCompositorClass* class) {
 
   class->output_type = SHOYU_TYPE_OUTPUT;
   class->input_type = SHOYU_TYPE_INPUT;
+  class->surface_type = SHOYU_TYPE_SURFACE;
   class->xdg_toplevel_type = SHOYU_TYPE_XDG_TOPLEVEL;
 
   class->create_backend = shoyu_compositor_real_create_backend;
@@ -332,6 +377,7 @@ static void shoyu_compositor_class_init(ShoyuCompositorClass* class) {
   class->create_allocator = shoyu_compositor_real_create_allocator;
   class->create_output = shoyu_compositor_real_create_output;
   class->create_input = shoyu_compositor_real_create_input;
+  class->create_surface = shoyu_compositor_real_create_surface;
   class->create_xdg_toplevel = shoyu_compositor_real_create_xdg_toplevel;
 
   shoyu_compositor_props[PROP_APPLICATION] = g_param_spec_object(
@@ -390,6 +436,26 @@ static void shoyu_compositor_class_init(ShoyuCompositorClass* class) {
       "input-removed", SHOYU_TYPE_COMPOSITOR, G_SIGNAL_RUN_LAST,
       G_STRUCT_OFFSET(ShoyuCompositorClass, input_removed),
       NULL, NULL, NULL, G_TYPE_NONE, 1, SHOYU_TYPE_INPUT);
+
+  /**
+   * ShoyuCompositor::surface-added:
+   * @compositor: the object which received the signal
+   * @output: a #ShoyuXdgToplevel
+   */
+  shoyu_compositor_sigs[SIG_SURFACE_ADDED] = g_signal_new(
+      "surface-added", SHOYU_TYPE_COMPOSITOR, G_SIGNAL_RUN_LAST,
+      G_STRUCT_OFFSET(ShoyuCompositorClass, surface_added),
+      NULL, NULL, NULL, G_TYPE_NONE, 1, SHOYU_TYPE_SURFACE);
+
+  /**
+   * ShoyuCompositor::surface-removed:
+   * @compositor: the object which received the signal
+   * @output: a #ShoyuXdgToplevel
+   */
+  shoyu_compositor_sigs[SIG_SURFACE_REMOVED] = g_signal_new(
+      "surface-removed", SHOYU_TYPE_COMPOSITOR, G_SIGNAL_RUN_LAST,
+      G_STRUCT_OFFSET(ShoyuCompositorClass, surface_removed),
+      NULL, NULL, NULL, G_TYPE_NONE, 1, SHOYU_TYPE_SURFACE);
 
   /**
    * ShoyuCompositor::xdg-toplevel-added:
@@ -544,6 +610,19 @@ ShoyuOutput* shoyu_compositor_get_output(ShoyuCompositor* self, struct wlr_outpu
   return NULL;
 }
 
+ShoyuSurface* shoyu_compositor_get_surface(ShoyuCompositor* self, struct wlr_surface* wlr_surface) {
+  g_return_val_if_fail(SHOYU_IS_COMPOSITOR(self), NULL);
+
+  for (GList* item = self->surfaces; item != NULL; item = item->next) {
+    ShoyuSurface* surface = SHOYU_SURFACE(item->data);
+
+    if (surface->is_invalidated) continue;
+    if (surface->wlr_surface == wlr_surface) return surface;
+  }
+
+  return NULL;
+}
+
 gboolean shoyu_compositor_is_xdg_toplevel_claimed(ShoyuCompositor* self, struct xdg_toplevel* xdg_toplevel) {
   g_return_val_if_fail(SHOYU_IS_COMPOSITOR(self), FALSE);
 
@@ -554,6 +633,22 @@ gboolean shoyu_compositor_is_xdg_toplevel_claimed(ShoyuCompositor* self, struct 
     if (output->wlr_surface != NULL) {
       struct wlr_xdg_toplevel* output_xdg_toplevel = wlr_xdg_toplevel_try_from_wlr_surface(output->wlr_surface);
       if (output_xdg_toplevel == xdg_toplevel) return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+ShoyuOutput* shoyu_compositor_get_xdg_toplevel_claimed_output(ShoyuCompositor* self, struct xdg_toplevel* xdg_toplevel) {
+  g_return_val_if_fail(SHOYU_IS_COMPOSITOR(self), FALSE);
+
+  for (GList* item = self->outputs; item != NULL; item = item->next) {
+    ShoyuOutput* output = SHOYU_OUTPUT(item->data);
+
+    if (output->is_invalidated) continue;
+    if (output->wlr_surface != NULL) {
+      struct wlr_xdg_toplevel* output_xdg_toplevel = wlr_xdg_toplevel_try_from_wlr_surface(output->wlr_surface);
+      if (output_xdg_toplevel == xdg_toplevel) return output;
     }
   }
 

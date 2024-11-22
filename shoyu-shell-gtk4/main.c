@@ -32,7 +32,6 @@ static void gettext_initialization(void) {
 void shoyu_shell_gtk_init(void) {
   if (!shoyu_shell_gtk_init_check()) {
     g_warning("Failed to initialize");
-    exit(1);
   }
 }
 
@@ -72,34 +71,12 @@ static void shoyu_shell_gtk_wl_registry_global(void* data, struct wl_registry* w
   if (g_strcmp0(iface, shoyu_shell_interface.name) == 0) {
     self->shoyu_shell = wl_registry_bind(wl_registry, id, &shoyu_shell_interface, MIN(shoyu_shell_interface.version, version));
     shoyu_shell_add_listener(self->shoyu_shell, &shoyu_shell_listener, self);
-  } else if (g_strcmp0(iface, wl_output_interface.name) == 0) {
-    ShoyuShellGtkOutput* output = g_malloc0(sizeof (ShoyuShellGtkOutput));
-    g_assert(output != NULL);
-
-    output->wl_output_id = id;
-    output->display = display;
-    output->wl_output = wl_registry_bind(wl_registry, id, &wl_output_interface, MIN(wl_output_interface.version, version));
-
-    if (!shoyu_shell_output_ensure_shell(output)) {
-      g_warning("Failed to ensure the Shoyu Shell Output");
-    }
-
-    self->outputs = g_list_append(self->outputs, output);
   }
 }
 
 static void shoyu_shell_gtk_wl_registry_global_remove(void* data, struct wl_registry* wl_registry, uint32_t id) {
-  GdkDisplay* display = GDK_DISPLAY(data);
-  ShoyuShellGtkDisplay* self = g_object_get_data(G_OBJECT(display), SHOYU_SHELL_GTK_DISPLAY_KEY);
-
-  for (GList* item = self->outputs; item != NULL; item = item->next) {
-    ShoyuShellGtkOutput* output = item->data;
-    if (output->wl_output_id == id) {
-      self->outputs = g_list_remove_link(self->outputs, item);
-      g_list_free(item);
-      break;
-    }
-  }
+  //GdkDisplay* display = GDK_DISPLAY(data);
+  //ShoyuShellGtkDisplay* self = g_object_get_data(G_OBJECT(display), SHOYU_SHELL_GTK_DISPLAY_KEY);
 }
 
 static const struct wl_registry_listener shoyu_shell_gtk_wl_registry_listener = {
@@ -134,10 +111,33 @@ gboolean shoyu_shell_gtk_init_display(GdkDisplay* display) {
   return TRUE;
 }
 
-gboolean shoyu_shell_output_ensure_shell(ShoyuShellGtkOutput* output) {
-  ShoyuShellGtkDisplay* self = g_object_get_data(G_OBJECT(output->display), SHOYU_SHELL_GTK_DISPLAY_KEY);
-  g_return_val_if_fail(self->shoyu_shell != NULL, FALSE);
+struct shoyu_shell_output* shoyu_shell_gtk_get_output(GdkMonitor* monitor) {
+  struct shoyu_shell_output* shoyu_shell_output = g_object_get_data(G_OBJECT(monitor), SHOYU_SHELL_GTK_MONITOR_KEY);
+  if (shoyu_shell_output != NULL) {
+    return shoyu_shell_output;
+  }
 
-  output->shoyu_shell_output = shoyu_shell_get_output(self->shoyu_shell, output->wl_output);
+  GdkDisplay* display = gdk_monitor_get_display(monitor);
+  g_return_val_if_fail(display != NULL, NULL);
+
+  ShoyuShellGtkDisplay* self = g_object_get_data(G_OBJECT(display), SHOYU_SHELL_GTK_DISPLAY_KEY);
+  g_return_val_if_fail(self != NULL, NULL);
+
+  struct wl_output* wl_output = gdk_wayland_monitor_get_wl_output(monitor);
+
+  shoyu_shell_output = shoyu_shell_get_output(self->shoyu_shell, wl_output);
+  g_object_set_data(G_OBJECT(monitor), SHOYU_SHELL_GTK_MONITOR_KEY, shoyu_shell_output);
+  return shoyu_shell_output;
+}
+
+gboolean shoyu_shell_gtk_monitor_set_surface(GdkMonitor* monitor, GdkSurface* surface) {
+  struct shoyu_shell_output* shoyu_shell_output = shoyu_shell_gtk_get_output(monitor);
+  g_return_val_if_fail(shoyu_shell_output != NULL, FALSE);
+
+  g_return_val_if_fail(GDK_IS_WAYLAND_SURFACE(surface), FALSE);
+  struct wl_surface* wl_surface = gdk_wayland_surface_get_wl_surface(surface);
+  g_return_val_if_fail(wl_surface != NULL, FALSE);
+
+  shoyu_shell_output_set_surface(shoyu_shell_output, wl_surface);
   return TRUE;
 }

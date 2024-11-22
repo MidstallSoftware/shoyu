@@ -22,4 +22,7 @@ gboolean shoyu_shell_gtk_is_initialized(void);
 SHOYU_SHELL_GTK_AVAILABLE_IN_ALL
 gboolean shoyu_shell_gtk_init_display(GdkDisplay* display);
 
+SHOYU_SHELL_GTK_AVAILABLE_IN_ALL
+gboolean shoyu_shell_gtk_monitor_set_surface(GdkMonitor* monitor, GdkSurface* surface);
+
 G_END_DECLS

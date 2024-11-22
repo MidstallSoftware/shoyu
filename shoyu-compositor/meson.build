@@ -19,6 +19,7 @@ libcompositor_private_h_sources = files([
   'shell-private.h',
   'shell-output-private.h',
   'shell-toplevel-private.h',
+  'surface-private.h',
   'wayland-event-source-private.h',
   'xdg-toplevel-private.h',
 ])
@@ -29,6 +30,7 @@ libcompositor_public_sources = files([
   'main.c',
   'output.c',
   'shell.c',
+  'surface.c',
   'version.c',
   'wayland-event-source.c',
   'xdg-toplevel.c',
@@ -41,6 +43,7 @@ libcompositor_public_headers = files([
   'output.h',
   'shell.h',
   'shoyu-compositor.h',
+  'surface.h',
   'wayland-event-source.h',
   'xdg-toplevel.h',
 ])

@@ -4,6 +4,7 @@
 #include "compositor.h"
 #include "output.h"
 #include "input.h"
+#include "surface.h"
 #include "xdg-toplevel.h"
 
 #include <wlr/render/allocator.h>
@@ -29,6 +30,8 @@ struct _ShoyuCompositor {
   struct wlr_output_layout* output_layout;
 
   struct wlr_compositor* wlr_compositor;
+
+  GList* surfaces;
   struct wl_listener new_surface;
 
   GList* outputs;
@@ -61,7 +64,14 @@ struct _ShoyuCompositorClass {
   GType input_type;
 
   /**
-   * ShoyuCompositor:input_type:
+   * ShoyuCompositor:surface_type:
+   *
+   * The type to create when a #ShoyuSurface is being created.
+   */
+  GType surface_type;
+
+  /**
+   * ShoyuCompositor:xdg_toplevel_type:
    *
    * The type to create when a #ShoyuXdgToplevel is being created.
    */
@@ -124,13 +134,24 @@ struct _ShoyuCompositorClass {
   ShoyuInput* (*create_input)(ShoyuCompositor* self, struct wlr_input_device* device);
 
   /**
+   * ShoyuOutput:create_surface:
+   * @self: (not nullable): The object instance
+   * @surface: (not nullable): The wlroots surface
+   *
+   * Creates a #ShoyuSurface for the compositor.
+   *
+   * Returns: (nullable) (transfer full): A #ShoyuSurface.
+   */
+  ShoyuSurface* (*create_surface)(ShoyuCompositor* self, struct wlr_surface* surface);
+
+  /**
    * ShoyuOutput:create_xdg_toplevel:
    * @self: (not nullable): The object instance
-   * @output: (not nullable): The wlroots input
+   * @toplevel: (not nullable): The wlroots XDG toplevel
    *
-   * Creates a #ShoyuInput for the compositor.
+   * Creates a #ShoyuXdgToplevel for the compositor.
    *
-   * Returns: (nullable) (transfer full): A #ShoyuInput.
+   * Returns: (nullable) (transfer full): A #ShoyuXdgToplevel.
    */
   ShoyuXdgToplevel* (*create_xdg_toplevel)(ShoyuCompositor* self, struct wlr_xdg_toplevel* toplevel);
 
@@ -156,11 +177,25 @@ struct _ShoyuCompositorClass {
   void (*input_added)(ShoyuCompositor* self, ShoyuInput* input);
 
   /**
-   * ShoyuCompositor:output_removed:
+   * ShoyuCompositor:input_removed:
    * @self: (not nullable): The object instance
    * @input: (not nullable): The input which was removed
    */
   void (*input_removed)(ShoyuCompositor* self, ShoyuInput* input);
+
+  /**
+   * ShoyuCompositor:surface_added:
+   * @self: (not nullable): The object instance
+   * @surface: (not nullable): The surface which was added
+   */
+  void (*surface_added)(ShoyuCompositor* self, ShoyuSurface* surface);
+
+  /**
+   * ShoyuCompositor:surface_removed:
+   * @self: (not nullable): The object instance
+   * @surface: (not nullable): The surface which was removed
+   */
+  void (*surface_removed)(ShoyuCompositor* self, ShoyuSurface* surface);
 
   /**
    * ShoyuCompositor:input_added:
@@ -184,4 +219,7 @@ struct _ShoyuCompositorClass {
 };
 
 ShoyuOutput* shoyu_compositor_get_output(ShoyuCompositor* self, struct wlr_output* wlr_output);
+ShoyuSurface* shoyu_compositor_get_surface(ShoyuCompositor* self, struct wlr_surface* wlr_surface);
+
 gboolean shoyu_compositor_is_xdg_toplevel_claimed(ShoyuCompositor* self, struct xdg_toplevel* xdg_toplevel);
+ShoyuOutput* shoyu_compositor_get_xdg_toplevel_claimed_output(ShoyuCompositor* self, struct xdg_toplevel* xdg_toplevel);

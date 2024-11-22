@@ -177,5 +177,7 @@ void shoyu_shell_xdg_toplevel_bind_shell(ShoyuXdgToplevel* self) {
 }
 
 void shoyu_shell_xdg_toplevel_unbind_shell(ShoyuXdgToplevel* self) {
-  shoyu_shell_toplevel_delete(self->compositor->shell, self->wlr_xdg_toplevel);
+  if (self->wlr_xdg_toplevel != NULL) {
+    shoyu_shell_toplevel_delete(self->compositor->shell, self->wlr_xdg_toplevel);
+  }
 }

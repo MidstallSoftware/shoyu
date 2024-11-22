@@ -42,11 +42,16 @@ static void shoyu_output_frame(struct wl_listener* listener, void* data) {
   struct wlr_render_pass* pass = wlr_output_begin_render_pass(self->wlr_output, &state, NULL, NULL);
 
   if (self->wlr_surface != NULL) {
-    struct wlr_texture* texture = wlr_surface_get_texture(self->wlr_surface);
-
-    wlr_render_pass_add_texture(pass, &(struct wlr_render_texture_options){
-      .texture = texture,
-    });
+    ShoyuSurface* surface = shoyu_compositor_get_surface(self->compositor, self->wlr_surface);
+    if (surface != NULL) {
+      struct wlr_texture* texture = wlr_surface_get_texture(self->wlr_surface);
+      if (texture != NULL) {
+        wlr_render_pass_add_texture(pass, &(struct wlr_render_texture_options){
+          .texture = texture,
+          .dst_box = { 0, 0 },
+        });
+      }
+    }
   } else {
     wlr_render_pass_add_rect(pass, &(struct wlr_render_rect_options){
       .box = { self->wlr_output->width, self->wlr_output->height },
