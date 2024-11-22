@@ -10,6 +10,7 @@ project('shoyu', 'c',
   meson_version: '>= 1.2.0')
 
 gnome = import('gnome')
+wayland = import('unstable-wayland')
 
 add_project_arguments('-DG_LOG_USE_STRUCTURED=1', language: 'c')
 add_project_arguments('-DGLIB_DISABLE_DEPRECATION_WARNINGS', language: 'c')
@@ -189,6 +190,7 @@ common_ldflags = cc.get_supported_link_arguments([
 ])
 
 conf_inc = include_directories('.')
+proto_inc = include_directories('protocols')
 libcompositor_inc = include_directories('shoyu-compositor')
 libshell_gtk3_inc = include_directories('shoyu-shell-gtk3')
 libshell_gtk4_inc = include_directories('shoyu-shell-gtk4')
@@ -253,6 +255,8 @@ configure_file(output: 'shoyu-config.h',
   configuration: cdata)
 
 # Add subprojects
+subdir('protocols')
+
 subdir('shoyu-compositor/version')
 subdir('shoyu-compositor')
 subdir('shoyu-compositor-runner')

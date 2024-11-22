@@ -13,7 +13,9 @@ libcompositor_private_h_sources = files([
   'compositor-private.h',
   'input-private.h',
   'output-private.h',
+  'shell-private.h',
   'wayland-event-source-private.h',
+  'xdg-toplevel-private.h',
 ])
 
 libcompositor_public_sources = files([
@@ -21,8 +23,10 @@ libcompositor_public_sources = files([
   'input.c',
   'main.c',
   'output.c',
+  'shell.c',
   'version.c',
   'wayland-event-source.c',
+  'xdg-toplevel.c',
 ])
 
 libcompositor_public_headers = files([
@@ -30,8 +34,10 @@ libcompositor_public_headers = files([
   'input.h',
   'main.h',
   'output.h',
+  'shell.h',
   'shoyu-compositor.h',
   'wayland-event-source.h',
+  'xdg-toplevel.h',
 ])
 
 install_headers(libcompositor_public_headers, subdir: 'shoyu-compositor/')
@@ -103,7 +109,8 @@ libcompositor_sources += [
 libcompositor = shared_library('shoyu-compositor',
   sources: libcompositor_sources,
   c_args: libcompositor_cargs + common_cflags,
-  include_directories: [conf_inc, libcompositor_inc],
+  include_directories: [conf_inc, proto_inc, libcompositor_inc],
+  link_whole: [libwayland_server],
   dependencies: libcompositor_deps,
   link_args: common_ldflags,
   soversion: shoyu_soversion,

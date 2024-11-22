@@ -10,6 +10,8 @@ struct _ShoyuOutput {
   ShoyuCompositor* compositor;
 
   struct wlr_output* wlr_output;
+  struct wlr_output_layout_output* wlr_output_layout_output;
+  struct wlr_scene_output* wlr_scene_output;
 
   bool is_invalidated;
 

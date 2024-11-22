@@ -1,11 +1,16 @@
 #include "shoyu-config.h"
 
 #include "compositor-private.h"
+#include "shell-private.h"
 #include "output-private.h"
 #include "input-private.h"
 #include "wayland-event-source.h"
+#include "xdg-toplevel-private.h"
 
 #include <glib/gi18n-lib.h>
+#include <wlr/types/wlr_compositor.h>
+#include <wlr/types/wlr_data_device.h>
+#include <wlr/types/wlr_subcompositor.h>
 
 /**
  * ShoyuCompositor:
@@ -17,12 +22,15 @@ enum {
   PROP_0 = 0,
   PROP_APPLICATION,
   PROP_SOCKET,
+  PROP_SHELL,
   N_PROPERTIES,
 
   SIG_OUTPUT_ADDED = 0,
   SIG_OUTPUT_REMOVED,
   SIG_INPUT_ADDED,
   SIG_INPUT_REMOVED,
+  SIG_XDG_TOPLEVEL_ADDED,
+  SIG_XDG_TOPLEVEL_REMOVED,
   SIG_STARTED,
   N_SIGNALS,
 };
@@ -62,6 +70,20 @@ static void shoyu_compositor_destroy_input(ShoyuInput* input, ShoyuCompositor* s
 
   g_debug(_("Destroyed ShoyuInput#%p"), input);
   g_object_unref(input);
+}
+
+static void shoyu_compositor_destroy_xdg_toplevel(ShoyuXdgToplevel* toplevel, ShoyuCompositor* self) {
+  g_signal_emit(self, shoyu_compositor_sigs[SIG_XDG_TOPLEVEL_REMOVED], 0, toplevel);
+
+  guint len = g_list_length(self->xdg_toplevels);
+  self->xdg_toplevels = g_list_remove(self->xdg_toplevels, toplevel);
+
+  guint new_len = g_list_length(self->xdg_toplevels);
+  g_debug(_("XDG toplevels changed (old: %u, new: %u)"), len, new_len);
+  g_assert(new_len < len);
+
+  g_debug(_("Destroyed ShoyuXdgToplevel#%p"), toplevel);
+  g_object_unref(toplevel);
 }
 
 static void shoyu_compositor_new_output(struct wl_listener* listener, void* data) {
@@ -135,6 +157,32 @@ static void shoyu_compositor_new_input(struct wl_listener* listener, void* data)
   g_signal_emit(self, shoyu_compositor_sigs[SIG_INPUT_ADDED], 0, input);
 }
 
+static void shoyu_compositor_new_xdg_toplevel(struct wl_listener* listener, void* data) {
+  ShoyuCompositor* self = wl_container_of(listener, self, new_xdg_toplevel);
+  ShoyuCompositorClass* class = SHOYU_COMPOSITOR_GET_CLASS(self);
+
+  struct wlr_xdg_toplevel* wlr_xdg_toplevel = data;
+
+  g_return_if_fail(class->create_xdg_toplevel != NULL);
+
+  ShoyuXdgToplevel* toplevel = class->create_xdg_toplevel(self, wlr_xdg_toplevel);
+  if (toplevel == NULL) return;
+
+  g_signal_connect(toplevel, "destroy", G_CALLBACK(shoyu_compositor_destroy_xdg_toplevel), self);
+
+  shoyu_xdg_toplevel_realize(toplevel, wlr_xdg_toplevel);
+
+  guint len = g_list_length(self->xdg_toplevels);
+  self->xdg_toplevels = g_list_append(self->xdg_toplevels, toplevel);
+
+  guint new_len = g_list_length(self->xdg_toplevels);
+  g_debug("XDG toplevels changed (old: %u, new: %u)", len, new_len);
+  g_assert(new_len > len);
+
+  g_debug("Created ShoyuXdgToplevel#%p", toplevel);
+  g_signal_emit(self, shoyu_compositor_sigs[SIG_XDG_TOPLEVEL_ADDED], 0, toplevel);
+}
+
 static void shoyu_compositor_constructed(GObject* object) {
   G_OBJECT_CLASS(shoyu_compositor_parent_class)->constructed(object);
 
@@ -155,11 +203,16 @@ static void shoyu_compositor_constructed(GObject* object) {
   self->wlr_allocator = class->create_allocator(self, self->wlr_backend, self->wlr_renderer);
   g_assert(self->wlr_allocator != NULL);
 
+  wlr_compositor_create(self->wl_display, 5, self->wlr_renderer);
+
   self->new_output.notify = shoyu_compositor_new_output;
   wl_signal_add(&self->wlr_backend->events.new_output, &self->new_output);
 
   self->new_input.notify = shoyu_compositor_new_input;
   wl_signal_add(&self->wlr_backend->events.new_input, &self->new_input);
+
+  self->new_xdg_toplevel.notify = shoyu_compositor_new_xdg_toplevel;
+  wl_signal_add(&self->wlr_xdg_shell->events.new_toplevel, &self->new_xdg_toplevel);
 }
 
 static void shoyu_compositor_finalize(GObject* object) {
@@ -167,6 +220,15 @@ static void shoyu_compositor_finalize(GObject* object) {
 
   g_clear_list(&self->outputs, (GDestroyNotify) g_object_unref);
   g_clear_list(&self->inputs, (GDestroyNotify) g_object_unref);
+  g_clear_list(&self->xdg_toplevels, (GDestroyNotify) g_object_unref);
+
+  if (self->scene != NULL) {
+    wlr_scene_node_destroy(&self->scene->tree.node);
+    free(self->scene);
+    self->scene = NULL;
+  }
+
+  g_clear_object(&self->shell);
 
   g_clear_pointer(&self->wlr_allocator, (GDestroyNotify) wlr_allocator_destroy);
   g_clear_pointer(&self->wlr_renderer, (GDestroyNotify) wlr_renderer_destroy);
@@ -202,6 +264,9 @@ static void shoyu_compositor_get_property(GObject* object, guint prop_id, GValue
     case PROP_SOCKET:
       g_value_set_string(value, self->socket);
       break;
+    case PROP_SHELL:
+      g_value_set_object(value, G_OBJECT(self->shell));
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
       break;
@@ -236,6 +301,14 @@ static ShoyuInput* shoyu_compositor_real_create_input(ShoyuCompositor* self, str
   return input;
 }
 
+static ShoyuXdgToplevel* shoyu_compositor_real_create_xdg_toplevel(ShoyuCompositor* self, struct wlr_xdg_toplevel* wlr_xdg_toplevel) {
+  ShoyuCompositorClass* class = SHOYU_COMPOSITOR_GET_CLASS(self);
+
+  ShoyuXdgToplevel* toplevel = g_object_new(class->xdg_toplevel_type, "compositor", self, NULL);
+  g_return_val_if_fail(toplevel != NULL, NULL);
+  return toplevel;
+}
+
 static void shoyu_compositor_class_init(ShoyuCompositorClass* class) {
   GObjectClass* object_class = G_OBJECT_CLASS(class);
 
@@ -246,12 +319,14 @@ static void shoyu_compositor_class_init(ShoyuCompositorClass* class) {
 
   class->output_type = SHOYU_TYPE_OUTPUT;
   class->input_type = SHOYU_TYPE_INPUT;
+  class->xdg_toplevel_type = SHOYU_TYPE_XDG_TOPLEVEL;
 
   class->create_backend = shoyu_compositor_real_create_backend;
   class->create_renderer = shoyu_compositor_real_create_renderer;
   class->create_allocator = shoyu_compositor_real_create_allocator;
   class->create_output = shoyu_compositor_real_create_output;
   class->create_input = shoyu_compositor_real_create_input;
+  class->create_xdg_toplevel = shoyu_compositor_real_create_xdg_toplevel;
 
   shoyu_compositor_props[PROP_APPLICATION] = g_param_spec_object(
       "application", "Gio Application",
@@ -262,6 +337,11 @@ static void shoyu_compositor_class_init(ShoyuCompositorClass* class) {
       "socket", "Wayland Socket",
       "The name of the Wayland display socket.",
       NULL, G_PARAM_READABLE);
+
+  shoyu_compositor_props[PROP_SHELL] = g_param_spec_object(
+      "shell", "Shoyu Shell",
+      "The shell to run with the compositor.",
+      SHOYU_TYPE_SHELL, G_PARAM_READABLE);
 
   g_object_class_install_properties(object_class, N_PROPERTIES, shoyu_compositor_props);
 
@@ -306,6 +386,26 @@ static void shoyu_compositor_class_init(ShoyuCompositorClass* class) {
       NULL, NULL, NULL, G_TYPE_NONE, 1, SHOYU_TYPE_INPUT);
 
   /**
+   * ShoyuCompositor::xdg-toplevel-added:
+   * @compositor: the object which received the signal
+   * @output: a #ShoyuXdgToplevel
+   */
+  shoyu_compositor_sigs[SIG_XDG_TOPLEVEL_ADDED] = g_signal_new(
+      "xdg-toplevel-added", SHOYU_TYPE_COMPOSITOR, G_SIGNAL_RUN_LAST,
+      G_STRUCT_OFFSET(ShoyuCompositorClass, xdg_toplevel_added),
+      NULL, NULL, NULL, G_TYPE_NONE, 1, SHOYU_TYPE_XDG_TOPLEVEL);
+
+  /**
+   * ShoyuCompositor::xdg-toplevel-removed:
+   * @compositor: the object which received the signal
+   * @output: a #ShoyuXdgToplevel
+   */
+  shoyu_compositor_sigs[SIG_XDG_TOPLEVEL_REMOVED] = g_signal_new(
+      "xdg-toplevel-removed", SHOYU_TYPE_COMPOSITOR, G_SIGNAL_RUN_LAST,
+      G_STRUCT_OFFSET(ShoyuCompositorClass, xdg_toplevel_removed),
+      NULL, NULL, NULL, G_TYPE_NONE, 1, SHOYU_TYPE_XDG_TOPLEVEL);
+
+  /**
    * ShoyuCompositor::started:
    * @compositor: the object which received the signal
    */
@@ -322,10 +422,30 @@ static void shoyu_compositor_init(ShoyuCompositor* self) {
   self->socket = wl_display_add_socket_auto(self->wl_display);
   g_assert(self->socket != NULL);
 
+  g_debug("ShoyuCompositor#%p has socket %s", self, self->socket);
+
   self->wl_source = shoyu_wayland_event_source_new(self->wl_display, wl_display_get_event_loop(self->wl_display));
   g_assert(self->wl_source != NULL);
 
   self->outputs = NULL;
+
+  self->wlr_xdg_shell = wlr_xdg_shell_create(self->wl_display, 3);
+  g_assert(self->wlr_xdg_shell != NULL);
+
+  self->scene = wlr_scene_create();
+  g_assert(self->scene != NULL);
+
+  self->output_layout = wlr_output_layout_create(self->wl_display);
+  g_assert(self->output_layout != NULL);
+
+  self->scene_output_layout = wlr_scene_attach_output_layout(self->scene, self->output_layout);
+  g_assert(self->scene_output_layout != NULL);
+
+  self->shell = shoyu_shell_new(self);
+  g_assert(self->shell != NULL);
+
+  wlr_subcompositor_create(self->wl_display);
+  wlr_data_device_manager_create(self->wl_display);
 }
 
 /**
@@ -398,4 +518,9 @@ gboolean shoyu_compositor_start(ShoyuCompositor* self) {
 
   g_signal_emit(self, shoyu_compositor_sigs[SIG_STARTED], 0);
   return TRUE;
+}
+
+ShoyuShell* shoyu_compositor_get_shell(ShoyuCompositor* self) {
+  g_return_val_if_fail(SHOYU_IS_COMPOSITOR(self), FALSE);
+  return self->shell;
 }

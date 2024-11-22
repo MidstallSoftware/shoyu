@@ -6,6 +6,7 @@
 
 #include <glib-object.h>
 #include <gio/gio.h>
+#include <shoyu-compositor/shell.h>
 #include <shoyu-compositor/version.h>
 
 G_BEGIN_DECLS
@@ -41,5 +42,8 @@ const char* shoyu_compositor_get_socket(ShoyuCompositor* self);
 
 SHOYU_AVAILABLE_IN_ALL
 gboolean shoyu_compositor_start(ShoyuCompositor* self);
+
+SHOYU_AVAILABLE_IN_ALL
+ShoyuShell* shoyu_compositor_get_shell(ShoyuCompositor* self);
 
 G_END_DECLS

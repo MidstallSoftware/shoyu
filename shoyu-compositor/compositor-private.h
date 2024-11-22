@@ -1,17 +1,23 @@
 #pragma once
 
+#include "shell.h"
 #include "compositor.h"
 #include "output.h"
 #include "input.h"
+#include "xdg-toplevel.h"
 
 #include <wlr/render/allocator.h>
 #include <wlr/render/wlr_renderer.h>
+#include <wlr/types/wlr_output_layout.h>
+#include <wlr/types/wlr_scene.h>
+#include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/backend.h>
 
 struct _ShoyuCompositor {
   GObject parent_instance;
 
   GApplication* application;
+  ShoyuShell* shell;
 
   struct wl_display* wl_display;
   GSource* wl_source;
@@ -20,11 +26,19 @@ struct _ShoyuCompositor {
   struct wlr_renderer* wlr_renderer;
   struct wlr_allocator* wlr_allocator;
 
+  struct wlr_xdg_shell* wlr_xdg_shell;
+  struct wlr_output_layout* output_layout;
+  struct wlr_scene_output_layout* scene_output_layout;
+  struct wlr_scene* scene;
+
   GList* outputs;
   struct wl_listener new_output;
 
   GList* inputs;
   struct wl_listener new_input;
+
+  GList* xdg_toplevels;
+  struct wl_listener new_xdg_toplevel;
 
   char* socket;
 };
@@ -45,6 +59,13 @@ struct _ShoyuCompositorClass {
    * The type to create when a #ShoyuInput is being created.
    */
   GType input_type;
+
+  /**
+   * ShoyuCompositor:input_type:
+   *
+   * The type to create when a #ShoyuXdgToplevel is being created.
+   */
+  GType xdg_toplevel_type;
 
   /**
    * ShoyuCompositor:create_backend:
@@ -103,6 +124,17 @@ struct _ShoyuCompositorClass {
   ShoyuInput* (*create_input)(ShoyuCompositor* self, struct wlr_input_device* device);
 
   /**
+   * ShoyuOutput:create_xdg_toplevel:
+   * @self: (not nullable): The object instance
+   * @output: (not nullable): The wlroots input
+   *
+   * Creates a #ShoyuInput for the compositor.
+   *
+   * Returns: (nullable) (transfer full): A #ShoyuInput.
+   */
+  ShoyuXdgToplevel* (*create_xdg_toplevel)(ShoyuCompositor* self, struct wlr_xdg_toplevel* toplevel);
+
+  /**
    * ShoyuCompositor:output_added:
    * @self: (not nullable): The object instance
    * @output: (not nullable): The output which was added
@@ -119,16 +151,30 @@ struct _ShoyuCompositorClass {
   /**
    * ShoyuCompositor:input_added:
    * @self: (not nullable): The object instance
-   * @output: (not nullable): The input which was added
+   * @input: (not nullable): The input which was added
    */
-  void (*input_added)(ShoyuCompositor* self, ShoyuInput* output);
+  void (*input_added)(ShoyuCompositor* self, ShoyuInput* input);
 
   /**
    * ShoyuCompositor:output_removed:
    * @self: (not nullable): The object instance
-   * @output: (not nullable): The input which was removed
+   * @input: (not nullable): The input which was removed
    */
-  void (*input_removed)(ShoyuCompositor* self, ShoyuInput* output);
+  void (*input_removed)(ShoyuCompositor* self, ShoyuInput* input);
+
+  /**
+   * ShoyuCompositor:input_added:
+   * @self: (not nullable): The object instance
+   * @toplevel: (not nullable): The toplevel which was added
+   */
+  void (*xdg_toplevel_added)(ShoyuCompositor* self, ShoyuXdgToplevel* toplevel);
+
+  /**
+   * ShoyuCompositor:output_removed:
+   * @self: (not nullable): The object instance
+   * @toplevel: (not nullable): The toplevel which was removed
+   */
+  void (*xdg_toplevel_removed)(ShoyuCompositor* self, ShoyuXdgToplevel* toplevel);
 
   /**
    * ShoyuCompositor::started:

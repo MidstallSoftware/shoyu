@@ -56,6 +56,7 @@
                 gi-docgen
                 pkg-config
                 vala
+                wayland-scanner
               ];
 
               buildInputs = [
@@ -63,6 +64,7 @@
                 wlroots_0_18
                 gtk3
                 gtk4
+                libxkbcommon
               ];
 
               mesonFlags = [

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="shoyu_shell">
+  <interface name="shoyu_shell" version="1">
+    <description summary="shoyu_shell">
+      The global interface exposing Shoyu Shell capabilities and control.
+    </description>
+
+    <request name="get_output">
+      <arg name="id" type="new_id" interface="shoyu_shell_output" />
+      <arg name="output" type="object" interface="wl_output" />
+    </request>
+
+    <request name="get_surface">
+      <arg name="id" type="new_id" interface="shoyu_shell_surface" />
+      <arg name="surface" type="object" interface="wl_surface" />
+    </request>
+  </interface>
+
+  <interface name="shoyu_shell_output" version="1">
+    <request name="set_surface">
+      <description summary="set shell output surface">
+        Sets the surface to render as the output
+      </description>
+      <arg name="surface" type="object" interface="wl_surface" />
+    </request>
+  </interface>
+
+  <interface name="shoyu_shell_surface" version="1">
+    <request name="capture">
+      <arg name="buffer" type="object" interface="wl_buffer" />
+    </request>
+    <event name="drm_format">
+      <arg name="drm_format" type="uint" summary="DRM pixel format code" />
+    </event>
+    <event name="shm_format">
+      <arg name="shm_format" type="uint" summary="SHM pixel format code" />
+    </event>
+    <event name="frame">
+      <description summary="frame ready">
+        An event which says the surface is ready for capture.
+      </description>
+      <arg name="width" type="uint" summary="buffer width"/>
+      <arg name="height" type="uint" summary="buffer height"/>
+    </event>
+  </interface>
+</protocol>
