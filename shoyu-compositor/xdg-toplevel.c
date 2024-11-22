@@ -1,5 +1,7 @@
 #include "compositor-private.h"
+#include "shell-private.h"
 #include "xdg-toplevel-private.h"
+#include "shell-toplevel-private.h"
 
 enum {
   PROP_0 = 0,
@@ -144,6 +146,10 @@ void shoyu_xdg_toplevel_realize(ShoyuXdgToplevel* self, struct wlr_xdg_toplevel*
   wl_signal_add(&self->wlr_xdg_toplevel->events.destroy, &self->destroy);
 
   g_signal_emit(self, shoyu_xdg_toplevel_sigs[SIG_REALIZED], 0, wlr_xdg_toplevel);
+
+  if (!shoyu_compositor_is_xdg_toplevel_claimed(self->compositor, wlr_xdg_toplevel) && self->compositor->shell->resource != NULL) {
+    shoyu_shell_xdg_toplevel_bind_shell(self);
+  }
 }
 
 /**
@@ -160,4 +166,16 @@ void shoyu_xdg_toplevel_unrealize(ShoyuXdgToplevel* self) {
   self->is_invalidated = TRUE;
 
   g_signal_emit(self, shoyu_xdg_toplevel_sigs[SIG_UNREALIZED], 0);
+
+  if (!shoyu_compositor_is_xdg_toplevel_claimed(self->compositor, self->wlr_xdg_toplevel) && self->compositor->shell->resource != NULL) {
+    shoyu_shell_xdg_toplevel_unbind_shell(self);
+  }
+}
+
+void shoyu_shell_xdg_toplevel_bind_shell(ShoyuXdgToplevel* self) {
+  shoyu_shell_toplevel_create(self->compositor->shell->client, self->compositor->shell->resource, self->wlr_xdg_toplevel);
+}
+
+void shoyu_shell_xdg_toplevel_unbind_shell(ShoyuXdgToplevel* self) {
+  shoyu_shell_toplevel_delete(self->compositor->shell, self->wlr_xdg_toplevel);
 }

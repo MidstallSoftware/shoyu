@@ -26,3 +26,8 @@ option('gtk4',
   value: 'auto',
   yield:  true,
   description: 'Build the GTK 4 shell library')
+
+option('build-examples',
+  type: 'boolean',
+  value: true,
+  description: 'Build examples')

@@ -86,6 +86,14 @@ static void shoyu_compositor_destroy_xdg_toplevel(ShoyuXdgToplevel* toplevel, Sh
   g_object_unref(toplevel);
 }
 
+static void shoyu_compositor_new_surface(struct wl_listener* listener, void* data) {
+  ShoyuCompositor* self = wl_container_of(listener, self, new_surface);
+
+  struct wlr_surface* wlr_surface = data;
+
+  // TODO: handle proper addition of the surface
+}
+
 static void shoyu_compositor_new_output(struct wl_listener* listener, void* data) {
   ShoyuCompositor* self = wl_container_of(listener, self, new_output);
   ShoyuCompositorClass* class = SHOYU_COMPOSITOR_GET_CLASS(self);
@@ -203,7 +211,11 @@ static void shoyu_compositor_constructed(GObject* object) {
   self->wlr_allocator = class->create_allocator(self, self->wlr_backend, self->wlr_renderer);
   g_assert(self->wlr_allocator != NULL);
 
-  wlr_compositor_create(self->wl_display, 5, self->wlr_renderer);
+  self->wlr_compositor = wlr_compositor_create(self->wl_display, 5, self->wlr_renderer);
+  g_assert(self->wlr_compositor != NULL);
+
+  self->new_surface.notify = shoyu_compositor_new_surface;
+  wl_signal_add(&self->wlr_compositor->events.new_surface, &self->new_surface);
 
   self->new_output.notify = shoyu_compositor_new_output;
   wl_signal_add(&self->wlr_backend->events.new_output, &self->new_output);
@@ -221,12 +233,6 @@ static void shoyu_compositor_finalize(GObject* object) {
   g_clear_list(&self->outputs, (GDestroyNotify) g_object_unref);
   g_clear_list(&self->inputs, (GDestroyNotify) g_object_unref);
   g_clear_list(&self->xdg_toplevels, (GDestroyNotify) g_object_unref);
-
-  if (self->scene != NULL) {
-    wlr_scene_node_destroy(&self->scene->tree.node);
-    free(self->scene);
-    self->scene = NULL;
-  }
 
   g_clear_object(&self->shell);
 
@@ -432,14 +438,8 @@ static void shoyu_compositor_init(ShoyuCompositor* self) {
   self->wlr_xdg_shell = wlr_xdg_shell_create(self->wl_display, 3);
   g_assert(self->wlr_xdg_shell != NULL);
 
-  self->scene = wlr_scene_create();
-  g_assert(self->scene != NULL);
-
   self->output_layout = wlr_output_layout_create(self->wl_display);
   g_assert(self->output_layout != NULL);
-
-  self->scene_output_layout = wlr_scene_attach_output_layout(self->scene, self->output_layout);
-  g_assert(self->scene_output_layout != NULL);
 
   self->shell = shoyu_shell_new(self);
   g_assert(self->shell != NULL);
@@ -542,4 +542,20 @@ ShoyuOutput* shoyu_compositor_get_output(ShoyuCompositor* self, struct wlr_outpu
   }
 
   return NULL;
+}
+
+gboolean shoyu_compositor_is_xdg_toplevel_claimed(ShoyuCompositor* self, struct xdg_toplevel* xdg_toplevel) {
+  g_return_val_if_fail(SHOYU_IS_COMPOSITOR(self), FALSE);
+
+  for (GList* item = self->outputs; item != NULL; item = item->next) {
+    ShoyuOutput* output = SHOYU_OUTPUT(item->data);
+
+    if (output->is_invalidated) continue;
+    if (output->wlr_surface != NULL) {
+      struct wlr_xdg_toplevel* output_xdg_toplevel = wlr_xdg_toplevel_try_from_wlr_surface(output->wlr_surface);
+      if (output_xdg_toplevel == xdg_toplevel) return TRUE;
+    }
+  }
+
+  return FALSE;
 }

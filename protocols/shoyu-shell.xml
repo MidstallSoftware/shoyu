@@ -7,7 +7,12 @@
 
     <enum name="error">
       <entry name="output_already_constructed" value="0" summary="wl_output already has a shoyu shell output" />
-      <entry name="surface_already_constructed" value="1" summary="wl_surface already has a shoyu shell surface" />
+      <entry name="toplevel_already_constructed" value="1" summary="xdg_toplevel already has a shoyu shell toplevel" />
+    </enum>
+
+    <enum name="composite_mode">
+      <entry name="server_side" value="0" summary="server side compositing" />
+      <entry name="client_side" value="1" summary="client side compositing" />
     </enum>
 
     <request name="get_output">
@@ -15,10 +20,9 @@
       <arg name="output" type="object" interface="wl_output" />
     </request>
 
-    <request name="get_surface">
-      <arg name="id" type="new_id" interface="shoyu_shell_surface" />
-      <arg name="surface" type="object" interface="wl_surface" />
-    </request>
+    <event name="toplevel_added">
+      <arg name="toplevel" type="new_id" interface="shoyu_shell_toplevel" />
+    </event>
   </interface>
 
   <interface name="shoyu_shell_output" version="1">
@@ -30,7 +34,7 @@
     </request>
   </interface>
 
-  <interface name="shoyu_shell_surface" version="1">
+  <interface name="shoyu_shell_toplevel" version="1">
     <request name="capture">
       <arg name="buffer" type="object" interface="wl_buffer" />
     </request>
@@ -46,6 +50,11 @@
       </description>
       <arg name="width" type="uint" summary="buffer width"/>
       <arg name="height" type="uint" summary="buffer height"/>
+    </event>
+    <event name="destroy" type="destructor">
+      <description summary="toplevel destroy">
+        Emitted when the toplevel is destroyed
+      </description>
     </event>
   </interface>
 </protocol>

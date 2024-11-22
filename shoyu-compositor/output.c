@@ -36,11 +36,33 @@ static void shoyu_output_destroy(struct wl_listener* listener, void* data) {
 static void shoyu_output_frame(struct wl_listener* listener, void* data) {
   ShoyuOutput* self = wl_container_of(listener, self, frame);
 
-  wlr_scene_output_commit(self->wlr_scene_output, NULL);
+  struct wlr_output_state state;
+  wlr_output_state_init(&state);
 
-  struct timespec now;
-	clock_gettime(CLOCK_MONOTONIC, &now);
-	wlr_scene_output_send_frame_done(self->wlr_scene_output, &now);
+  struct wlr_render_pass* pass = wlr_output_begin_render_pass(self->wlr_output, &state, NULL, NULL);
+
+  if (self->wlr_surface != NULL) {
+    struct wlr_texture* texture = wlr_surface_get_texture(self->wlr_surface);
+
+    wlr_render_pass_add_texture(pass, &(struct wlr_render_texture_options){
+      .texture = texture,
+    });
+  } else {
+    wlr_render_pass_add_rect(pass, &(struct wlr_render_rect_options){
+      .box = { self->wlr_output->width, self->wlr_output->height },
+      .color = { 0, 0, 0, 1.0 },
+    });
+  }
+
+  wlr_render_pass_submit(pass);
+  wlr_output_commit_state(self->wlr_output, &state);
+  wlr_output_state_finish(&state);
+
+  if (self->wlr_surface != NULL) {
+	  struct timespec now;
+	  clock_gettime(CLOCK_MONOTONIC, &now);
+    wlr_surface_send_frame_done(self->wlr_surface, &now);
+  }
 }
 
 static void shoyu_output_request_state(struct wl_listener* listener, void* data) {
@@ -55,6 +77,13 @@ static void shoyu_output_request_state(struct wl_listener* listener, void* data)
   // TODO: pass this to a signal to determine what should be done.
 
   wlr_output_commit_state(self->wlr_output, &state);
+
+  if (self->wlr_surface != NULL) {
+    struct wlr_xdg_toplevel* xdg_toplevel = wlr_xdg_toplevel_try_from_wlr_surface(self->wlr_surface);
+    if (xdg_toplevel != NULL) {
+      wlr_xdg_toplevel_set_size(xdg_toplevel, self->wlr_output->width, self->wlr_output->height);
+    }
+  }
 }
 
 static void shoyu_output_finalize(GObject* object) {
@@ -192,11 +221,6 @@ void shoyu_output_realize(ShoyuOutput* self, struct wlr_output* wlr_output) {
   self->wlr_output_layout_output = wlr_output_layout_add_auto(self->compositor->output_layout, wlr_output);
   g_assert(self->wlr_output_layout_output != NULL);
 
-  self->wlr_scene_output = wlr_scene_output_create(self->compositor->scene, wlr_output);
-  g_assert(self->wlr_scene_output != NULL);
-
-  wlr_scene_output_layout_add_output(self->compositor->scene_output_layout, self->wlr_output_layout_output, self->wlr_scene_output);
-
   g_signal_emit(self, shoyu_output_sigs[SIG_REALIZED], 0, wlr_output);
 }
 
@@ -211,8 +235,6 @@ void shoyu_output_unrealize(ShoyuOutput* self) {
   wl_list_remove(&self->destroy.link);
   wl_list_remove(&self->frame.link);
   wl_list_remove(&self->request_state.link);
-
-  g_clear_pointer(&self->wlr_scene_output, wlr_scene_output_destroy);
 
   self->wlr_output = NULL;
   self->is_invalidated = TRUE;

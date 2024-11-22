@@ -9,7 +9,6 @@
 #include <wlr/render/allocator.h>
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/types/wlr_output_layout.h>
-#include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/backend.h>
 
@@ -28,8 +27,9 @@ struct _ShoyuCompositor {
 
   struct wlr_xdg_shell* wlr_xdg_shell;
   struct wlr_output_layout* output_layout;
-  struct wlr_scene_output_layout* scene_output_layout;
-  struct wlr_scene* scene;
+
+  struct wlr_compositor* wlr_compositor;
+  struct wl_listener new_surface;
 
   GList* outputs;
   struct wl_listener new_output;
@@ -184,3 +184,4 @@ struct _ShoyuCompositorClass {
 };
 
 ShoyuOutput* shoyu_compositor_get_output(ShoyuCompositor* self, struct wlr_output* wlr_output);
+gboolean shoyu_compositor_is_xdg_toplevel_claimed(ShoyuCompositor* self, struct xdg_toplevel* xdg_toplevel);

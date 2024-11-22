@@ -1,7 +1,8 @@
 #include "compositor-private.h"
 #include "shell-private.h"
 #include "shell-output-private.h"
-#include "shell-surface-private.h"
+#include "shell-toplevel-private.h"
+#include "xdg-toplevel-private.h"
 
 /**
  * ShoyuShell:
@@ -21,12 +22,19 @@ G_DEFINE_TYPE(ShoyuShell, shoyu_shell, G_TYPE_OBJECT)
 
 static const struct shoyu_shell_interface shoyu_shell_impl = {
   .get_output = shoyu_shell_get_output,
-  .get_surface = shoyu_shell_get_surface,
 };
 
 static void shoyu_shell_resource_destroy(struct wl_resource* resource) {
   ShoyuShell* self = wl_resource_get_user_data(resource);
 
+  for (GList* item = self->compositor->xdg_toplevels; item != NULL; item = item->next) {
+    ShoyuXdgToplevel* xdg_toplevel = SHOYU_XDG_TOPLEVEL(item->data);
+    if (xdg_toplevel->is_invalidated) continue;
+
+    shoyu_shell_xdg_toplevel_unbind_shell(xdg_toplevel);
+  }
+
+  self->client = NULL;
   self->resource = NULL;
   self->version = 0;
 }
@@ -47,6 +55,14 @@ static void shoyu_shell_bind(struct wl_client* wl_client, void* data, uint32_t v
 
   self->resource = resource;
   self->version = version;
+  self->client = wl_client;
+
+  for (GList* item = self->compositor->xdg_toplevels; item != NULL; item = item->next) {
+    ShoyuXdgToplevel* xdg_toplevel = SHOYU_XDG_TOPLEVEL(item->data);
+    if (xdg_toplevel->is_invalidated) continue;
+
+    shoyu_shell_xdg_toplevel_bind_shell(xdg_toplevel);
+  }
 }
 
 static void shoyu_shell_display_destroy(struct wl_listener* listener, void* data) {

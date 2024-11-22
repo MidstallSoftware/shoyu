@@ -13,6 +13,7 @@ foreach protocol : protocols
     public: true)
 
   libwayland_client_sources += [
+    generated[0],
     generated[1]
   ]
 

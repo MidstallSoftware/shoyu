@@ -54,7 +54,7 @@ void shoyu_init(void) {
 gboolean shoyu_init_check(void) {
   if (shoyu_initialized) return TRUE;
 
-  setlocale_initialization();
+  gettext_initialization();
   wlr_log_init(WLR_DEBUG, log_handler);
 
   shoyu_initialized = TRUE;

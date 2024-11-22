@@ -11,10 +11,12 @@ libshell_gtk4_private_sources = files([])
 libshell_gtk4_private_h_sources = files([])
 
 libshell_gtk4_public_sources = files([
+  'main.c',
   'version.c',
 ])
 
 libshell_gtk4_public_headers = files([
+  'main.h',
   'shoyu-shell-gtk4.h',
 ])
 
@@ -64,6 +66,8 @@ libshell_gtk4_gen_headers = [
 
 libshell_gtk4_deps = [
   gobject,
+  gtk4,
+  gtk4_wayland,
 ]
 
 darwin_versions = [
@@ -85,8 +89,9 @@ libshell_gtk4_sources += [
 libshell_gtk4 = shared_library('shoyu-shell-gtk4',
   sources: libshell_gtk4_sources,
   c_args: libshell_gtk4_cargs + common_cflags,
-  include_directories: [conf_inc, libshell_gtk4_inc],
+  include_directories: [conf_inc, libshell_gtk4_inc, proto_inc],
   dependencies: libshell_gtk4_deps,
+  link_whole: [libwayland_client],
   link_args: common_ldflags,
   soversion: shoyu_soversion,
   version: shoyu_library_version,
@@ -102,7 +107,7 @@ if build_gir
     '--quiet',
   ]
 
-  libshell_gtk4_gir_inc = [ 'GObject-2.0' ]
+  libshell_gtk4_gir_inc = [ 'GObject-2.0', 'Gdk-4.0', 'Gtk-4.0' ]
 
   libshell_gtk4_gir = gnome.generate_gir(libshell_gtk4,
     sources: [
@@ -130,7 +135,7 @@ endif
 if build_vapi
   libshell_gtk4_vapi = gnome.generate_vapi('shoyu-shell-gtk4',
     sources: libshell_gtk4_gir[0],
-    packages: ['gobject-2.0'],
+    packages: ['gobject-2.0', 'gtk4'],
     install: true)
 endif
 

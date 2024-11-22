@@ -12,6 +12,7 @@ struct _ShoyuShell {
   struct wl_listener display_destroy;
 
   struct wl_resource* resource;
+  struct wl_client* client;
   uint32_t version;
 };
 

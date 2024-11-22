@@ -25,3 +25,6 @@ struct _ShoyuXdgToplevelClass {
 
 void shoyu_xdg_toplevel_realize(ShoyuXdgToplevel* self, struct wlr_xdg_toplevel* wlr_xdg_toplevel);
 void shoyu_xdg_toplevel_unrealize(ShoyuXdgToplevel* self);
+
+void shoyu_shell_xdg_toplevel_bind_shell(ShoyuXdgToplevel* self);
+void shoyu_shell_xdg_toplevel_unbind_shell(ShoyuXdgToplevel* self);

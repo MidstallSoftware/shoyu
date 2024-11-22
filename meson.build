@@ -246,6 +246,7 @@ if not gtk4.found() and get_option('gtk4').enabled()
 endif
 
 build_gtk4 = gtk4.found() and (get_option('gtk4').enabled() or get_option('gtk4').allowed())
+gtk4_wayland = dependency('gtk4-wayland', required: build_gtk4)
 
 if build_gtk4
   shoyu_shells += 'gtk4'
@@ -266,6 +267,10 @@ foreach shell : shoyu_shells
   subdir('shoyu-shell-@0@'.format(shell))
 endforeach
 
+if get_option('build-examples')
+  subdir('examples')
+endif
+
 subdir('po')
 
 # Documentation
@@ -282,6 +287,7 @@ summary('Optimization', get_option('optimization'), section: 'Build')
 summary('Introspection', build_gir, section: 'Build')
 summary('Vala API Generation', build_vapi, section: 'Build')
 summary('Documentation', get_option('documentation'), section: 'Build')
+summary('Examples', get_option('build-examples'), section: 'Build')
 
 summary('prefix', shoyu_prefix, section: 'Directories')
 summary('includedir', shoyu_includedir, section: 'Directories')

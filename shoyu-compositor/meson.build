@@ -9,7 +9,7 @@ libcompositor_cargs = [
 
 libcompositor_private_sources = files([
   'shell-output.c',
-  'shell-surface.c',
+  'shell-toplevel.c',
 ])
 
 libcompositor_private_h_sources = files([
@@ -18,7 +18,7 @@ libcompositor_private_h_sources = files([
   'output-private.h',
   'shell-private.h',
   'shell-output-private.h',
-  'shell-surface-private.h',
+  'shell-toplevel-private.h',
   'wayland-event-source-private.h',
   'xdg-toplevel-private.h',
 ])
