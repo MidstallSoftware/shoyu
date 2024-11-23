@@ -24,6 +24,9 @@ enum {
   PROP_APPLICATION,
   PROP_SOCKET,
   PROP_SHELL,
+#ifdef SHOYU_COLORD
+  PROP_COLORD_CLIENT,
+#endif
   N_PROPERTIES,
 
   SIG_OUTPUT_ADDED = 0,
@@ -253,6 +256,16 @@ static void shoyu_compositor_constructed(GObject *object) {
   ShoyuCompositor *self = SHOYU_COMPOSITOR(object);
   ShoyuCompositorClass *class = SHOYU_COMPOSITOR_GET_CLASS(self);
 
+#ifdef SHOYU_COLORD
+  self->colord = cd_client_new();
+
+  GError *error = NULL;
+  if (!cd_client_connect_sync(self->colord, NULL, &error)) {
+    g_warning("Cannot connect to colord: %s", error->message);
+    g_clear_object(&self->colord);
+  }
+#endif
+
   g_assert(class->create_backend != NULL);
   self->wlr_backend =
       class->create_backend(self, wl_display_get_event_loop(self->wl_display));
@@ -297,6 +310,10 @@ static void shoyu_compositor_finalize(GObject *object) {
 
   g_clear_object(&self->shell);
 
+#ifdef SHOYU_COLORD
+  g_clear_object(&self->colord);
+#endif
+
   g_clear_pointer(&self->wlr_allocator, (GDestroyNotify)wlr_allocator_destroy);
   g_clear_pointer(&self->wlr_renderer, (GDestroyNotify)wlr_renderer_destroy);
   g_clear_pointer(&self->wlr_backend, (GDestroyNotify)wlr_backend_destroy);
@@ -337,6 +354,11 @@ static void shoyu_compositor_get_property(GObject *object, guint prop_id,
     case PROP_SHELL:
       g_value_set_object(value, G_OBJECT(self->shell));
       break;
+#ifdef SHOYU_COLORD
+    case PROP_COLORD_CLIENT:
+      g_value_set_object(value, G_OBJECT(self->colord));
+      break;
+#endif
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
       break;
@@ -437,6 +459,12 @@ static void shoyu_compositor_class_init(ShoyuCompositorClass *class) {
   shoyu_compositor_props[PROP_SHELL] = g_param_spec_object(
       "shell", "Shoyu Shell", "The shell to run with the compositor.",
       SHOYU_TYPE_SHELL, G_PARAM_READABLE);
+
+#ifdef SHOYU_COLORD
+  shoyu_compositor_props[PROP_COLORD_CLIENT] = g_param_spec_object(
+      "colord-client", "Colord Client", "The colord client for the compositor",
+      CD_TYPE_CLIENT, G_PARAM_READABLE);
+#endif
 
   g_object_class_install_properties(object_class, N_PROPERTIES,
                                     shoyu_compositor_props);

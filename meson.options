@@ -1,3 +1,8 @@
+option('colord',
+  type: 'feature',
+  value: 'auto',
+  description: 'Build colord support')
+
 option('introspection',
   type: 'feature',
   value: 'auto',

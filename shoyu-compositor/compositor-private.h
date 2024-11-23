@@ -1,11 +1,16 @@
 #pragma once
 
 #include "compositor.h"
+#include "config.h"
 #include "input.h"
 #include "output.h"
 #include "shell.h"
 #include "surface.h"
 #include "xdg-toplevel.h"
+
+#ifdef SHOYU_COLORD
+#include <colord.h>
+#endif
 
 #include <wlr/backend.h>
 #include <wlr/render/allocator.h>
@@ -44,6 +49,10 @@ struct _ShoyuCompositor {
     struct wl_listener new_xdg_toplevel;
 
     const char *socket;
+
+#ifdef SHOYU_COLORD
+    CdClient *colord;
+#endif
 };
 
 struct _ShoyuCompositorClass {
