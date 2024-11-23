@@ -62,6 +62,7 @@ libcompositor_enums = gnome.mkenums_simple('compositorenumtypes',
 libcompositor_enums_h = libcompositor_enums[1]
 
 libcompositor_config_cdata = configuration_data()
+libcompositor_config_cdata.set('SHOYU_COLORD', build_colord)
 
 libcompositor_config = configure_file(
   input: 'config.h.meson',
@@ -97,6 +98,10 @@ libcompositor_deps = [
   wlroots,
   wayland_server,
 ]
+
+if build_colord
+  libcompositor_deps += colord
+endif
 
 darwin_versions = [
   # compatibility version
@@ -137,6 +142,10 @@ if build_gir
 
   libcompositor_gir_inc = [ 'GObject-2.0', 'Gio-2.0' ]
 
+  if build_colord
+    libcompositor_gir_inc += 'Colord-1.0'
+  endif
+
   libcompositor_gir = gnome.generate_gir(libcompositor,
     sources: [
       libcompositor_enums_h,
@@ -160,9 +169,15 @@ if build_gir
 endif
 
 if build_vapi
+  libcompositor_vapi_pkgs = ['gobject-2.0', 'gio-2.0']
+
+  if build_colord
+    libcompositor_vapi_pkgs += 'colord'
+  endif
+
   libcompositor_vapi = gnome.generate_vapi('shoyu-compositor',
     sources: libcompositor_gir[0],
-    packages: ['gobject-2.0', 'gio-2.0'],
+    packages: libcompositor_vapi_pkgs,
     install: true)
 endif
 

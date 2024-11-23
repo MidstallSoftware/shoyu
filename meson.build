@@ -224,6 +224,14 @@ wlroots = dependency('wlroots-0.18', version: '>= 0.18.0')
 wayland_server = dependency('wayland-server', version: '>= 1.23.0')
 wayland_client = dependency('wayland-client', version: '>= 1.23.0')
 
+colord = dependency('colord', required: get_option('colord'))
+
+if not colord.found() and get_option('colord').enabled()
+  error('Colord support enabled, but colord not found.')
+endif
+
+build_colord = colord.found() and (get_option('colord').enabled() or get_option('colord').allowed())
+
 shoyu_shells = []
 
 # GTK 3
@@ -280,6 +288,8 @@ subdir('docs/reference')
 
 # Summary
 summary('Shells', shoyu_shells, section: 'Components')
+
+summary('Colord', build_colord, section: 'Features')
 
 summary('Compiler', cc.get_id(), section: 'Toolchain')
 summary('Linker', cc.get_linker_id(), section: 'Toolchain')

@@ -51,9 +51,22 @@
             buildInputs = [
               glib
               wlroots_0_18
-              gtk3
-              gtk4
+              (gtk3.overrideAttrs (f: p: {
+                buildInputs = p.buildInputs ++ [ colord ];
+
+                mesonFlags = p.mesonFlags ++ [
+                  (lib.mesonOption "colord" "yes")
+                ];
+              }))
+              (gtk4.overrideAttrs (f: p: {
+                buildInputs = p.buildInputs ++ [ colord ];
+
+                mesonFlags = p.mesonFlags ++ [
+                  (lib.mesonEnable "colord" true)
+                ];
+              }))
               libxkbcommon
+              colord
             ];
 
             mesonFlags = [

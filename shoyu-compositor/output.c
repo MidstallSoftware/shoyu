@@ -1,4 +1,5 @@
 #include "compositor-private.h"
+#include "config.h"
 #include "output-private.h"
 
 /**
@@ -99,6 +100,34 @@ static void shoyu_output_request_state(struct wl_listener *listener,
   }
 }
 
+#ifdef SHOYU_COLORD
+static char *shoyu_output_get_cd_device_name(ShoyuOutput *self) { return ""; }
+#endif
+
+static void shoyu_output_constructed(GObject *object) {
+  G_OBJECT_CLASS(shoyu_output_parent_class)->constructed(object);
+
+  ShoyuOutput *self = SHOYU_OUTPUT(object);
+
+#ifdef SHOYU_COLORD
+  GError *error = NULL;
+  GPtrArray *devices = cd_client_get_devices_by_kind_sync(
+      self->compositor->colord, CD_DEVICE_KIND_DISPLAY, NULL, &error);
+  if (devices == NULL) {
+    g_warning("Failed to get colord devices");
+  } else {
+    for (guint i = 0; i < devices->len; i++) {
+      CdDevice *device = CD_DEVICE(devices->pdata[i]);
+      // TODO: find a device which matches
+    }
+
+    g_clear_pointer(&devices, (GDestroyNotify)g_ptr_array_unref);
+
+    // g_debug("Looking for device %s", shoyu_output_get_cd_device_name(self));
+  }
+#endif
+}
+
 static void shoyu_output_finalize(GObject *object) {
   ShoyuOutput *self = SHOYU_OUTPUT(object);
 
@@ -143,6 +172,7 @@ static void shoyu_output_get_property(GObject *object, guint prop_id,
 static void shoyu_output_class_init(ShoyuOutputClass *class) {
   GObjectClass *object_class = G_OBJECT_CLASS(class);
 
+  object_class->constructed = shoyu_output_constructed;
   object_class->finalize = shoyu_output_finalize;
   object_class->set_property = shoyu_output_set_property;
   object_class->get_property = shoyu_output_get_property;
@@ -241,6 +271,10 @@ void shoyu_output_realize(ShoyuOutput *self, struct wlr_output *wlr_output) {
   g_assert(self->wlr_output_layout_output != NULL);
 
   g_signal_emit(self, shoyu_output_sigs[SIG_REALIZED], 0, wlr_output);
+
+  g_message("%s %s %s %s %s", self->wlr_output->name,
+            self->wlr_output->description, self->wlr_output->make,
+            self->wlr_output->model, self->wlr_output->serial);
 }
 
 /**
