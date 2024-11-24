@@ -11,11 +11,13 @@ libshell_gtk4_private_sources = files([])
 libshell_gtk4_private_h_sources = files([])
 
 libshell_gtk4_public_sources = files([
+  'display.c',
   'main.c',
   'version.c',
 ])
 
 libshell_gtk4_public_headers = files([
+  'display.h',
   'main.h',
   'shoyu-shell-gtk4.h',
 ])

@@ -9,15 +9,18 @@ libshell_gtk3_cargs = [
 libshell_gtk3_private_sources = files([])
 
 libshell_gtk3_private_h_sources = files([
+  'display-private.h',
   'main-private.h',
 ])
 
 libshell_gtk3_public_sources = files([
+  'display.c',
   'main.c',
   'version.c',
 ])
 
 libshell_gtk3_public_headers = files([
+  'display.h',
   'main.h',
   'shoyu-shell-gtk3.h',
 ])
