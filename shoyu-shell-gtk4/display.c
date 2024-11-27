@@ -1,4 +1,5 @@
 #include "display-private.h"
+#include "toplevel-private.h"
 #include <gdk/wayland/gdkwayland.h>
 
 enum {
@@ -14,8 +15,38 @@ static GParamSpec *shoyu_shell_gtk_display_props[N_PROPERTIES] = {
 G_DEFINE_TYPE(ShoyuShellGtkDisplay, shoyu_shell_gtk_display, G_TYPE_OBJECT)
 
 static void
-shoyu_shell_display_toplevel_added(void *data, struct shoyu_shell *shoyu_shell,
-                                   struct shoyu_shell_toplevel *toplevel) {}
+shoyu_shell_gtk_display_destroy_toplevel(ShoyuShellGtkToplevel *toplevel,
+                                         ShoyuShellGtkDisplay *self) {
+  guint i = 0;
+  g_assert(g_list_store_find(self->toplevels, toplevel, &i));
+
+  g_list_store_remove(self->toplevels, i);
+
+  g_debug("ShoyuShellGtkToplevel#%p destroyed", toplevel);
+}
+
+static void shoyu_shell_display_toplevel_added(
+    void *data, struct shoyu_shell *shoyu_shell,
+    struct shoyu_shell_toplevel *shoyu_shell_toplevel) {
+  ShoyuShellGtkDisplay *self = SHOYU_SHELL_GTK_DISPLAY(data);
+  ShoyuShellGtkDisplayClass *class = SHOYU_SHELL_GTK_DISPLAY_GET_CLASS(self);
+  g_return_if_fail(class != NULL);
+
+  g_return_if_fail(class->create_toplevel != NULL);
+  ShoyuShellGtkToplevel *toplevel =
+      class->create_toplevel(self, shoyu_shell_toplevel);
+  if (toplevel == NULL)
+    return;
+
+  shoyu_shell_gtk_toplevel_realize(toplevel, shoyu_shell_toplevel);
+
+  g_signal_connect(toplevel, "destroy",
+                   G_CALLBACK(shoyu_shell_gtk_display_destroy_toplevel), self);
+
+  g_debug("ShoyuShellGtkToplevel#%p created", toplevel);
+
+  g_list_store_append(self->toplevels, toplevel);
+}
 
 static const struct shoyu_shell_listener shoyu_shell_listener = {
   .toplevel_added = shoyu_shell_display_toplevel_added,
@@ -71,6 +102,8 @@ static void shoyu_shell_gtk_display_finalize(GObject *object) {
     self->display = NULL;
   }
 
+  g_clear_object(&self->toplevels);
+
   G_OBJECT_CLASS(shoyu_shell_gtk_display_parent_class)->finalize(object);
 }
 
@@ -104,6 +137,18 @@ static void shoyu_shell_gtk_display_get_property(GObject *object, guint prop_id,
   }
 }
 
+static ShoyuShellGtkToplevel *shoyu_shell_gtk_display_real_create_toplevel(
+    ShoyuShellGtkDisplay *self,
+    struct shoyu_shell_toplevel *shoyu_shell_toplevel) {
+  ShoyuShellGtkDisplayClass *class = SHOYU_SHELL_GTK_DISPLAY_GET_CLASS(self);
+  g_return_val_if_fail(class != NULL, NULL);
+
+  ShoyuShellGtkToplevel *toplevel =
+      g_object_new(class->toplevel_type, "display", self, NULL);
+  g_return_val_if_fail(toplevel != NULL, NULL);
+  return toplevel;
+}
+
 static void
 shoyu_shell_gtk_display_class_init(ShoyuShellGtkDisplayClass *class) {
   GObjectClass *object_class = G_OBJECT_CLASS(class);
@@ -113,6 +158,10 @@ shoyu_shell_gtk_display_class_init(ShoyuShellGtkDisplayClass *class) {
   object_class->set_property = shoyu_shell_gtk_display_set_property;
   object_class->get_property = shoyu_shell_gtk_display_get_property;
 
+  class->toplevel_type = SHOYU_SHELL_GTK_TYPE_TOPLEVEL;
+
+  class->create_toplevel = shoyu_shell_gtk_display_real_create_toplevel;
+
   shoyu_shell_gtk_display_props[PROP_DISPLAY] = g_param_spec_object(
       "display", "GDK Display", "The display the shell is connected to.",
       GDK_TYPE_WAYLAND_DISPLAY, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
@@ -121,7 +170,9 @@ shoyu_shell_gtk_display_class_init(ShoyuShellGtkDisplayClass *class) {
                                     shoyu_shell_gtk_display_props);
 }
 
-static void shoyu_shell_gtk_display_init(ShoyuShellGtkDisplay *self) {}
+static void shoyu_shell_gtk_display_init(ShoyuShellGtkDisplay *self) {
+  self->toplevels = g_list_store_new(SHOYU_SHELL_GTK_TYPE_TOPLEVEL);
+}
 
 ShoyuShellGtkDisplay *shoyu_shell_gtk_display_get(GdkDisplay *display) {
   ShoyuShellGtkDisplay *self =
@@ -144,4 +195,18 @@ ShoyuShellGtkDisplay *shoyu_shell_gtk_display_get(GdkDisplay *display) {
   g_object_set_data_full(G_OBJECT(display), SHOYU_SHELL_GTK_DISPLAY_KEY,
                          g_object_ref(self), (GDestroyNotify)g_object_unref);
   return self;
+}
+
+/**
+ * shoyu_shell_gtk_display_get_toplevels:
+ * @self: A #ShoyuShellGtkDisplay
+ *
+ * Gets a list of toplevels.
+ *
+ * Returns: (transfer none) (element-type ShoyuShellGtkToplevel): A #GListModel
+ * of #ShoyuShellGtkToplevel
+ */
+GListModel *shoyu_shell_gtk_display_get_toplevels(ShoyuShellGtkDisplay *self) {
+  g_return_val_if_fail(SHOYU_SHELL_GTK_IS_DISPLAY(self), NULL);
+  return G_LIST_MODEL(self->toplevels);
 }
