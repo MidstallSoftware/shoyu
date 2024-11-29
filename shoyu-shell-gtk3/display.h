@@ -39,4 +39,7 @@ GType shoyu_shell_gtk_display_get_type(void) G_GNUC_CONST;
 SHOYU_SHELL_GTK_AVAILABLE_IN_ALL
 ShoyuShellGtkDisplay *shoyu_shell_gtk_display_get(GdkDisplay *display);
 
+SHOYU_SHELL_GTK_AVAILABLE_IN_ALL
+GListModel *shoyu_shell_gtk_display_get_toplevels(ShoyuShellGtkDisplay *self);
+
 G_END_DECLS

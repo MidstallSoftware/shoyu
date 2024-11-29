@@ -6,16 +6,21 @@ libshell_gtk3_cargs = [
   '-DSHOYU_SHELL_GTK_DATA_PREFIX="@0@"'.format(shoyu_prefix),
 ]
 
-libshell_gtk3_private_sources = files([])
+libshell_gtk3_private_sources = files([
+  'dmabuf.c',
+])
 
 libshell_gtk3_private_h_sources = files([
   'display-private.h',
+  'dmabuf-private.h',
   'main-private.h',
+  'toplevel-private.h',
 ])
 
 libshell_gtk3_public_sources = files([
   'display.c',
   'main.c',
+  'toplevel.c',
   'version.c',
 ])
 
@@ -23,6 +28,7 @@ libshell_gtk3_public_headers = files([
   'display.h',
   'main.h',
   'shoyu-shell-gtk3.h',
+  'toplevel.h',
 ])
 
 install_headers(libshell_gtk3_public_headers, subdir: 'shoyu-shell-gtk3/')
@@ -69,12 +75,22 @@ libshell_gtk3_gen_headers = [
   libshell_gtk3_version,
 ]
 
-libshell_gtk3_deps = [
+libshell_gtk3_deps_public = [
   gobject,
-  gdk3_wayland,
   gtk3,
-  wayland_client,
+  cairo,
 ]
+
+libshell_gtk3_deps_private = [
+  drm,
+  gbm,
+  libudev,
+  gdk3_wayland,
+  wayland_client,
+  epoxy,
+]
+
+libshell_gtk3_deps = libshell_gtk3_deps_public + libshell_gtk3_deps_private
 
 darwin_versions = [
   # compatibility version
@@ -141,13 +157,13 @@ endif
 if build_vapi
   libshell_gtk3_vapi = gnome.generate_vapi('shoyu-shell-gtk3',
     sources: libshell_gtk3_gir[0],
-    packages: ['gobject-2.0', 'gtk+-3.0'],
+    packages: ['gobject-2.0', 'gtk+-3.0', 'cairo'],
     install: true)
 endif
 
 libshell_gtk3_dep = declare_dependency(
   sources: libshell_gtk3_dep_sources,
   include_directories: [conf_inc, libshell_gtk3_inc],
-  dependencies: libshell_gtk3_deps,
+  dependencies: libshell_gtk3_deps_public,
   link_with: libshell_gtk3,
   link_args: common_ldflags)

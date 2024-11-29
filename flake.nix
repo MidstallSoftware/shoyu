@@ -56,6 +56,7 @@
               libxkbcommon
               mesa
               udev
+              libepoxy
             ];
 
             mesonFlags = [

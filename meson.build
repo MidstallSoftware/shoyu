@@ -249,6 +249,11 @@ endif
 
 build_gtk3 = gtk3.found() and (get_option('gtk3').enabled() or get_option('gtk3').allowed())
 gdk3_wayland = dependency('gdk-wayland-3.0', required: build_gtk3)
+epoxy = dependency('epoxy', required: build_gtk3)
+cairo = [
+  dependency('cairo', required: build_gtk3),
+  dependency('cairo-gobject', required: build_gtk3),
+]
 
 # GTK 4
 if build_gtk3
