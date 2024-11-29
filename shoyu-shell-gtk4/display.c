@@ -62,6 +62,13 @@ static void shoyu_shell_gtk_display_wl_registry_global(
         wl_registry_bind(wl_registry, id, &shoyu_shell_interface,
                          MIN(shoyu_shell_interface.version, version));
     shoyu_shell_add_listener(self->shoyu_shell, &shoyu_shell_listener, self);
+  } else if (g_strcmp0(iface, wl_shm_interface.name) == 0) {
+    self->wl_shm = wl_registry_bind(wl_registry, id, &wl_shm_interface,
+                                    MIN(wl_shm_interface.version, version));
+  } else if (g_strcmp0(iface, zwp_linux_dmabuf_v1_interface.name) == 0) {
+    self->zwp_linux_dmabuf_v1 =
+        wl_registry_bind(wl_registry, id, &zwp_linux_dmabuf_v1_interface,
+                         MIN(zwp_linux_dmabuf_v1_interface.version, version));
   }
 }
 
@@ -84,6 +91,12 @@ static void shoyu_shell_gtk_display_constructed(GObject *object) {
 
   wl_registry_add_listener(wl_registry, &wl_registry_listener, self);
   wl_display_roundtrip(wl_display);
+
+  if (self->zwp_linux_dmabuf_v1 != NULL) {
+    self->dmabuf_formats_info = dmabuf_formats_info_new(
+        self->display,
+        zwp_linux_dmabuf_v1_get_default_feedback(self->zwp_linux_dmabuf_v1));
+  }
 }
 
 static void shoyu_shell_gtk_display_finalize(GObject *object) {
@@ -103,6 +116,7 @@ static void shoyu_shell_gtk_display_finalize(GObject *object) {
   }
 
   g_clear_object(&self->toplevels);
+  g_clear_pointer(&self->dmabuf_formats_info, dmabuf_formats_info_free);
 
   G_OBJECT_CLASS(shoyu_shell_gtk_display_parent_class)->finalize(object);
 }
@@ -174,6 +188,14 @@ static void shoyu_shell_gtk_display_init(ShoyuShellGtkDisplay *self) {
   self->toplevels = g_list_store_new(SHOYU_SHELL_GTK_TYPE_TOPLEVEL);
 }
 
+/**
+ * shoyu_shell_gtk_display_get:
+ *
+ * Gets the instance of the #ShoyuShellGtkDisplay for the
+ * #GdkDisplay. Creates a new one if it doesn't exist.
+ *
+ * Returns: (transfer none): A #ShoyuShellGtkDisplay
+ */
 ShoyuShellGtkDisplay *shoyu_shell_gtk_display_get(GdkDisplay *display) {
   ShoyuShellGtkDisplay *self =
       g_object_get_data(G_OBJECT(display), SHOYU_SHELL_GTK_DISPLAY_KEY);

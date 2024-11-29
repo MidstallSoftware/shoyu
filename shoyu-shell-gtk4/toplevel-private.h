@@ -2,6 +2,7 @@
 
 #include "display.h"
 #include "toplevel.h"
+#include <gbm.h>
 #include <shoyu-shell-client-protocol.h>
 
 struct _ShoyuShellGtkToplevel {
@@ -9,6 +10,11 @@ struct _ShoyuShellGtkToplevel {
     ShoyuShellGtkDisplay *display;
     struct shoyu_shell_toplevel *shoyu_shell_toplevel;
     gboolean is_invalidated;
+    GdkTexture *texture;
+    uint32_t drm_format;
+    uint32_t shm_format;
+    struct gbm_bo *gbm_bo;
+    uint64_t gbm_bo_modifier;
 };
 
 struct _ShoyuShellGtkToplevelClass {

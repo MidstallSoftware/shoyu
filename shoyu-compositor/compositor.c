@@ -12,6 +12,7 @@
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_subcompositor.h>
+#include <wlr/types/wlr_viewporter.h>
 
 /**
  * ShoyuCompositor:
@@ -557,6 +558,7 @@ static void shoyu_compositor_init(ShoyuCompositor *self) {
 
   wlr_subcompositor_create(self->wl_display);
   wlr_data_device_manager_create(self->wl_display);
+  wlr_viewporter_create(self->wl_display);
 }
 
 /**

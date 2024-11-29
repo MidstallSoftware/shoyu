@@ -1,3 +1,5 @@
+#include "compositor-private.h"
+#include "shell-private.h"
 #include "shell-toplevel-private.h"
 #include <shoyu-shell-server-protocol.h>
 #include <wlr/types/wlr_compositor.h>
@@ -5,20 +7,69 @@
 
 typedef struct {
     struct wl_resource *resource;
+    gboolean has_addon_destroyed;
     struct wlr_addon addon;
     struct wlr_xdg_toplevel *wlr_xdg_toplevel;
+    struct wl_listener surface_commit;
+    struct wl_listener surface_destroy;
+    struct wl_listener xdg_toplevel_destroy;
     ShoyuShell *shell;
 } ShellToplevel;
 
-static const struct shoyu_shell_toplevel_interface shoyu_shell_toplevel_impl =
-    {};
+static void shoyu_shell_toplevel_capture(struct wl_client *client,
+                                         struct wl_resource *resource,
+                                         struct wl_resource *buffer_resource) {
+  ShellToplevel *self = wl_resource_get_user_data(resource);
+
+  struct wlr_buffer *buffer = wlr_buffer_try_from_resource(buffer_resource);
+  if (!buffer) {
+    // TODO: post error
+    return;
+  }
+
+  struct wlr_texture *texture =
+      wlr_surface_get_texture(self->wlr_xdg_toplevel->base->surface);
+  if (!texture) {
+    // TODO: post error
+    return;
+  }
+
+  struct wlr_render_pass *pass = wlr_renderer_begin_buffer_pass(
+      self->shell->compositor->wlr_renderer, buffer, NULL);
+  if (!pass) {
+    // TODO: post error
+    return;
+  }
+
+  wlr_render_pass_add_texture(pass, &(struct wlr_render_texture_options){
+                                      .texture = texture,
+                                      .blend_mode = WLR_RENDER_BLEND_MODE_NONE,
+                                      .dst_box = {0, 0},
+                                    });
+
+  if (!wlr_render_pass_submit(pass)) {
+    // TODO: post error
+    return;
+  }
+}
+
+static const struct shoyu_shell_toplevel_interface shoyu_shell_toplevel_impl = {
+  .capture = shoyu_shell_toplevel_capture,
+};
 
 static void shoyu_shell_toplevel_destroy(ShellToplevel *self) {
   if (self == NULL)
     return;
 
-  wlr_addon_finish(&self->addon);
+  if (!self->has_addon_destroyed) {
+    wlr_addon_finish(&self->addon);
+    self->has_addon_destroyed = TRUE;
+  }
+
   wl_resource_set_user_data(self->resource, NULL);
+  wl_list_remove(&self->surface_commit.link);
+  wl_list_remove(&self->surface_destroy.link);
+  wl_list_remove(&self->xdg_toplevel_destroy.link);
   shoyu_shell_toplevel_send_destroy(self->resource);
   free(self);
 }
@@ -38,6 +89,42 @@ static const struct wlr_addon_interface shoyu_shell_toplevel_addon_impl = {
   .name = "shoyu_shell_toplevel",
   .destroy = shoyu_shell_toplevel_addon_destroy,
 };
+
+static void shoyu_shell_toplevel_surface_commit(struct wl_listener *listener,
+                                                void *data) {
+  ShellToplevel *self = wl_container_of(listener, self, surface_commit);
+
+  if (wlr_surface_has_buffer(self->wlr_xdg_toplevel->base->surface)) {
+    struct wlr_buffer *wlr_buffer =
+        &self->wlr_xdg_toplevel->base->surface->buffer->base;
+
+    struct wlr_dmabuf_attributes dmabuf_attribs;
+    struct wlr_shm_attributes shm_attribs;
+    if (wlr_buffer_get_dmabuf(wlr_buffer, &dmabuf_attribs)) {
+      shoyu_shell_toplevel_send_drm_format(self->resource,
+                                           dmabuf_attribs.format);
+    } else if (wlr_buffer_get_shm(wlr_buffer, &shm_attribs)) {
+      shoyu_shell_toplevel_send_shm_format(self->resource, shm_attribs.format);
+    } else
+      return;
+
+    shoyu_shell_toplevel_send_frame(self->resource, wlr_buffer->width,
+                                    wlr_buffer->height);
+  }
+}
+
+static void shoyu_shell_toplevel_surface_destroy(struct wl_listener *listener,
+                                                 void *data) {
+  ShellToplevel *self = wl_container_of(listener, self, surface_destroy);
+  shoyu_shell_toplevel_destroy(self);
+}
+
+static void
+shoyu_shell_toplevel_xdg_toplevel_destroy(struct wl_listener *listener,
+                                          void *data) {
+  ShellToplevel *self = wl_container_of(listener, self, xdg_toplevel_destroy);
+  shoyu_shell_toplevel_destroy(self);
+}
 
 void shoyu_shell_toplevel_create(struct wl_client *wl_client,
                                  struct wl_resource *shell_resource,
@@ -70,6 +157,20 @@ void shoyu_shell_toplevel_create(struct wl_client *wl_client,
     wl_resource_post_no_memory(shell_resource);
     return;
   }
+
+  shell_toplevel->surface_commit.notify = shoyu_shell_toplevel_surface_commit;
+  wl_signal_add(&shell_toplevel->wlr_xdg_toplevel->base->surface->events.commit,
+                &shell_toplevel->surface_commit);
+
+  shell_toplevel->surface_destroy.notify = shoyu_shell_toplevel_surface_destroy;
+  wl_signal_add(
+      &shell_toplevel->wlr_xdg_toplevel->base->surface->events.destroy,
+      &shell_toplevel->surface_destroy);
+
+  shell_toplevel->xdg_toplevel_destroy.notify =
+      shoyu_shell_toplevel_xdg_toplevel_destroy;
+  wl_signal_add(&shell_toplevel->wlr_xdg_toplevel->events.destroy,
+                &shell_toplevel->xdg_toplevel_destroy);
 
   wl_resource_set_implementation(shell_toplevel->resource,
                                  &shoyu_shell_toplevel_impl, shell_toplevel,
