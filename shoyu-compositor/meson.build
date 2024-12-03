@@ -96,6 +96,7 @@ libcompositor_deps = [
   gio,
   wlroots,
   wayland_server,
+  pixman,
 ]
 
 darwin_versions = [

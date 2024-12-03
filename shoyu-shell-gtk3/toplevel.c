@@ -85,6 +85,20 @@ static void shoyu_shell_gtk_toplevel_shm_format(
   toplevel->shm_format = shm_format;
 }
 
+static void shoyu_shell_gtk_toplevel_damage(
+    void *data, struct shoyu_shell_toplevel *shoyu_shell_toplevel, uint32_t x,
+    uint32_t y, uint32_t width, uint32_t height) {
+  ShoyuShellGtkToplevel *self = SHOYU_SHELL_GTK_TOPLEVEL(data);
+
+  GdkRectangle *rect = g_new0(GdkRectangle, 1);
+  rect->x = x;
+  rect->y = y;
+  rect->width = width;
+  rect->height = height;
+
+  self->damage = g_list_append(self->damage, rect);
+}
+
 static void shoyu_shell_gtk_toplevel_frame(
     void *data, struct shoyu_shell_toplevel *shoyu_shell_toplevel,
     uint32_t width, uint32_t height) {
@@ -92,6 +106,9 @@ static void shoyu_shell_gtk_toplevel_frame(
 
   if (self->drm_format > 0) {
     g_assert(self->display->zwp_linux_dmabuf_v1 != NULL);
+
+    GList *damage = self->damage;
+    self->damage = NULL;
 
     gboolean needs_updating = FALSE;
     if (self->gbm_bo != NULL) {
@@ -199,7 +216,12 @@ static void shoyu_shell_gtk_toplevel_frame(
         cairo_surface_flush(self->cairo_surface);
         memcpy(cairo_image_surface_get_data(self->cairo_surface), bo_data,
                stride * height);
-        cairo_surface_mark_dirty(self->cairo_surface);
+
+        for (GList *item = damage; item != NULL; item = item->next) {
+          GdkRectangle *rect = item->data;
+          cairo_surface_mark_dirty_rectangle(
+              self->cairo_surface, rect->x, rect->y, rect->width, rect->height);
+        }
 
         g_object_notify_by_pspec(G_OBJECT(self),
                                  shoyu_shell_gtk_toplevel_props[PROP_SURFACE]);
@@ -207,6 +229,8 @@ static void shoyu_shell_gtk_toplevel_frame(
 
       gbm_bo_unmap(self->gbm_bo, bo_map);
     }
+
+    g_clear_list(&damage, (GDestroyNotify)g_free);
   }
 }
 
@@ -224,6 +248,7 @@ static const struct shoyu_shell_toplevel_listener
     shoyu_shell_toplevel_listener = {
       .drm_format = shoyu_shell_gtk_toplevel_drm_format,
       .shm_format = shoyu_shell_gtk_toplevel_shm_format,
+      .damage = shoyu_shell_gtk_toplevel_damage,
       .frame = shoyu_shell_gtk_toplevel_frame,
       .destroy = shoyu_shell_gtk_toplevel_destroy,
 };
@@ -234,6 +259,7 @@ static void shoyu_shell_gtk_toplevel_finalize(GObject *object) {
   g_clear_object(&self->display);
   g_clear_object(&self->gl_context);
   g_clear_pointer(&self->cairo_surface, cairo_surface_destroy);
+  g_clear_list(&self->damage, (GDestroyNotify)g_free);
 
   G_OBJECT_CLASS(shoyu_shell_gtk_toplevel_parent_class)->finalize(object);
 }

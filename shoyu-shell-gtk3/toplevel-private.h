@@ -19,6 +19,7 @@ struct _ShoyuShellGtkToplevel {
     guint64 gbm_bo_modifier;
     cairo_surface_t *cairo_surface;
     GLuint texture_id;
+    GList *damage;
 };
 
 struct _ShoyuShellGtkToplevelClass {

@@ -69,6 +69,15 @@ static void shoyu_shell_toplevel_capture(struct wl_client *client,
                                          struct wl_resource *buffer_resource) {
   ShellToplevel *self = wl_resource_get_user_data(resource);
 
+  int n_rects;
+  pixman_box32_t *damage = pixman_region32_rectangles(
+      &self->wlr_xdg_toplevel->base->surface->buffer_damage, &n_rects);
+  for (int i = 0; i < n_rects; i++) {
+    shoyu_shell_toplevel_send_damage(self->resource, damage[i].x1, damage[i].y1,
+                                     damage[i].x2 - damage[i].x1,
+                                     damage[i].y2 - damage[i].y1);
+  }
+
   ShellCapture *capture = g_new0(ShellCapture, 1);
 
   capture->toplevel = self;

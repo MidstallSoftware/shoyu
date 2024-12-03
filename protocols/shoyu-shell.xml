@@ -45,6 +45,12 @@
     <event name="shm_format">
       <arg name="shm_format" type="uint" summary="SHM pixel format code" />
     </event>
+    <event name="damage">
+      <arg name="x" type="uint" />
+      <arg name="y" type="uint" />
+      <arg name="width" type="uint" />
+      <arg name="height" type="uint" />
+    </event>
     <event name="frame">
       <description summary="frame ready">
         An event which says the surface is ready for capture.

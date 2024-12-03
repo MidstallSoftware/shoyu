@@ -57,6 +57,8 @@ static void shoyu_output_frame(struct wl_listener *listener, void *data) {
                                           });
       }
     }
+
+    wlr_output_state_set_damage(&state, &self->wlr_surface->buffer_damage);
   } else {
     wlr_render_pass_add_rect(
         pass, &(struct wlr_render_rect_options){

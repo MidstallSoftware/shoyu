@@ -15,6 +15,7 @@ struct _ShoyuShellGtkToplevel {
     uint32_t shm_format;
     struct gbm_bo *gbm_bo;
     uint64_t gbm_bo_modifier;
+    GList *damage;
 };
 
 struct _ShoyuShellGtkToplevelClass {
