@@ -36,6 +36,7 @@
 
   <interface name="shoyu_shell_toplevel" version="1">
     <request name="capture">
+      <arg name="capture" type="new_id" interface="shoyu_shell_capture" />
       <arg name="buffer" type="object" interface="wl_buffer" />
     </request>
     <event name="drm_format">
@@ -56,5 +57,19 @@
         Emitted when the toplevel is destroyed
       </description>
     </event>
+  </interface>
+
+  <interface name="shoyu_shell_capture" version="1">
+    <event name="done">
+      <description summary="capture done">
+        Emitted when the capture is complete
+      </description>
+    </event>
+
+    <request name="capture">
+      <description summary="capture">
+        Starts sending the transfer over
+      </description>
+    </request>
   </interface>
 </protocol>

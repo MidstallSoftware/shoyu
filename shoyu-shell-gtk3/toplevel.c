@@ -51,6 +51,18 @@ static const struct zwp_linux_buffer_params_v1_listener
       .failed = shoyu_shell_gtk_toplevel_linux_buffer_failed,
 };
 
+static void
+shoyu_shell_gtk_toplevel_capture_done(void *data,
+                                      struct shoyu_shell_capture *capture) {
+  gboolean *capture_done_ptr = data;
+  *capture_done_ptr = TRUE;
+}
+
+static const struct shoyu_shell_capture_listener shoyu_shell_capture_listener =
+    {
+      .done = shoyu_shell_gtk_toplevel_capture_done,
+};
+
 static void shoyu_shell_gtk_toplevel_drm_format(
     void *data, struct shoyu_shell_toplevel *shoyu_shell_toplevel,
     uint32_t drm_format) {
@@ -130,8 +142,25 @@ static void shoyu_shell_gtk_toplevel_frame(
     zwp_linux_buffer_params_v1_destroy(params);
     wl_event_queue_destroy(eq);
 
-    shoyu_shell_toplevel_capture(self->shoyu_shell_toplevel, cbd.buffer);
-    wl_display_roundtrip(wl_display);
+    struct shoyu_shell_capture *capture =
+        shoyu_shell_toplevel_capture(self->shoyu_shell_toplevel, cbd.buffer);
+    eq = wl_display_create_queue(wl_display);
+    wl_proxy_set_queue((struct wl_proxy *)capture, eq);
+
+    gboolean capture_done = FALSE;
+
+    shoyu_shell_capture_add_listener(capture, &shoyu_shell_capture_listener,
+                                     &capture_done);
+    shoyu_shell_capture_capture(capture);
+
+    while (!capture_done) {
+      wl_display_dispatch_queue(wl_display, eq);
+    }
+
+    shoyu_shell_capture_destroy(capture);
+    wl_buffer_destroy(cbd.buffer);
+    wl_event_queue_destroy(eq);
+
     g_signal_emit(self, shoyu_shell_gtk_toplevel_sigs[SIG_FRAME], 0);
 
     gboolean use_bo_map = self->gl_context != NULL

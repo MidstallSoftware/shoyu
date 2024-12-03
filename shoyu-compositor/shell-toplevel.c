@@ -16,26 +16,25 @@ typedef struct {
     ShoyuShell *shell;
 } ShellToplevel;
 
-static void shoyu_shell_toplevel_capture(struct wl_client *client,
-                                         struct wl_resource *resource,
-                                         struct wl_resource *buffer_resource) {
-  ShellToplevel *self = wl_resource_get_user_data(resource);
+typedef struct {
+    ShellToplevel *toplevel;
+    struct wlr_buffer *wlr_buffer;
+    struct wl_resource *resource;
+} ShellCapture;
 
-  struct wlr_buffer *buffer = wlr_buffer_try_from_resource(buffer_resource);
-  if (!buffer) {
-    // TODO: post error
-    return;
-  }
+static void shoyu_shell_toplevel_capture_capture(struct wl_client *client,
+                                                 struct wl_resource *resource) {
+  ShellCapture *self = wl_resource_get_user_data(resource);
 
   struct wlr_texture *texture =
-      wlr_surface_get_texture(self->wlr_xdg_toplevel->base->surface);
+      wlr_surface_get_texture(self->toplevel->wlr_xdg_toplevel->base->surface);
   if (!texture) {
     // TODO: post error
     return;
   }
 
   struct wlr_render_pass *pass = wlr_renderer_begin_buffer_pass(
-      self->shell->compositor->wlr_renderer, buffer, NULL);
+      self->toplevel->shell->compositor->wlr_renderer, self->wlr_buffer, NULL);
   if (!pass) {
     // TODO: post error
     return;
@@ -51,6 +50,40 @@ static void shoyu_shell_toplevel_capture(struct wl_client *client,
     // TODO: post error
     return;
   }
+
+  shoyu_shell_capture_send_done(resource);
+}
+
+static const struct shoyu_shell_capture_interface shoyu_shell_capture_impl = {
+  .capture = shoyu_shell_toplevel_capture_capture,
+};
+
+static void shoyu_shell_toplevel_capture_destroy(struct wl_resource *resource) {
+  ShellCapture *self = wl_resource_get_user_data(resource);
+  free(self);
+}
+
+static void shoyu_shell_toplevel_capture(struct wl_client *client,
+                                         struct wl_resource *resource,
+                                         uint32_t capture_id,
+                                         struct wl_resource *buffer_resource) {
+  ShellToplevel *self = wl_resource_get_user_data(resource);
+
+  ShellCapture *capture = g_new0(ShellCapture, 1);
+
+  capture->toplevel = self;
+  capture->wlr_buffer = wlr_buffer_try_from_resource(buffer_resource);
+  if (!capture->wlr_buffer) {
+    g_free(capture);
+    // TODO: post error
+    return;
+  }
+
+  capture->resource =
+      wl_resource_create(client, &shoyu_shell_capture_interface,
+                         wl_resource_get_version(resource), capture_id);
+  wl_resource_set_implementation(capture->resource, &shoyu_shell_capture_impl,
+                                 capture, shoyu_shell_toplevel_capture_destroy);
 }
 
 static const struct shoyu_shell_toplevel_interface shoyu_shell_toplevel_impl = {
