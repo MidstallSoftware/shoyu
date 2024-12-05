@@ -11,8 +11,8 @@ static void realize(GtkWidget *widget) {
 }
 
 static void activate(GApplication *application) {
-  GtkApplicationWindow *win =
-      gtk_application_window_new(GTK_APPLICATION(application));
+  GtkApplicationWindow *win = GTK_APPLICATION_WINDOW(
+      gtk_application_window_new(GTK_APPLICATION(application)));
   gtk_window_set_decorated(GTK_WINDOW(win), FALSE);
   g_signal_connect(win, "realize", G_CALLBACK(realize), NULL);
   gtk_window_present(GTK_WINDOW(win));

@@ -7,7 +7,7 @@ project('shoyu', 'c',
     'warning_level=1',
     'c_std=gnu99',
   ],
-  meson_version: '>= 1.2.0')
+  meson_version: '>= 1.5.0')
 
 gnome = import('gnome')
 wayland = import('unstable-wayland')
@@ -217,12 +217,27 @@ endif
 build_vapi = vapigen.found() and (get_option('introspection').enabled() or
   (get_option('introspection').allowed() and build_gir))
 
+# Vala Generation
+valac = find_program('valac', required: get_option('vala'))
+
+if not valac.found() and get_option('vala').enabled()
+  error('Vala compiling enabled, but valac not found.')
+endif
+
+build_vala = valac.found() and (get_option('vala').enabled() or
+  (get_option('vala').allowed() and build_vapi))
+add_languages('vala', required: build_vala)
+
 # Base dependencies
 gobject = dependency('gobject-2.0', version: '>= 2.81.0')
 gio = dependency('gio-2.0', version: '>= 2.81.0')
 wlroots = dependency('wlroots-0.18', version: '>= 0.18.0')
 wayland_server = dependency('wayland-server', version: '>= 1.23.0')
 wayland_client = dependency('wayland-client', version: '>= 1.23.0')
+drm = dependency('libdrm', version: '>= 2.4.0')
+gbm = dependency('gbm', version: '>= 24.1.0')
+libudev = dependency('libudev', version: '>= 256')
+pixman = dependency('pixman-1', version: '>= 0.43.0')
 
 shoyu_shells = []
 
@@ -235,6 +250,11 @@ endif
 
 build_gtk3 = gtk3.found() and (get_option('gtk3').enabled() or get_option('gtk3').allowed())
 gdk3_wayland = dependency('gdk-wayland-3.0', required: build_gtk3)
+epoxy = dependency('epoxy', required: build_gtk3)
+cairo = [
+  dependency('cairo', required: build_gtk3),
+  dependency('cairo-gobject', required: build_gtk3),
+]
 
 # GTK 4
 if build_gtk3
@@ -288,6 +308,7 @@ summary('Debugging', get_option('debug'), section: 'Build')
 summary('Optimization', get_option('optimization'), section: 'Build')
 summary('Introspection', build_gir, section: 'Build')
 summary('Vala API Generation', build_vapi, section: 'Build')
+summary('Vala Code', build_vala, section: 'Build')
 summary('Documentation', get_option('documentation'), section: 'Build')
 summary('Examples', get_option('build-examples'), section: 'Build')
 

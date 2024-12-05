@@ -6,17 +6,27 @@ libshell_gtk4_cargs = [
   '-DSHOYU_SHELL_GTK_DATA_PREFIX="@0@"'.format(shoyu_prefix),
 ]
 
-libshell_gtk4_private_sources = files([])
+libshell_gtk4_private_sources = files([
+  'dmabuf.c',
+])
 
-libshell_gtk4_private_h_sources = files([])
+libshell_gtk4_private_h_sources = files([
+  'display-private.h',
+  'dmabuf-private.h',
+  'toplevel-private.h',
+])
 
 libshell_gtk4_public_sources = files([
+  'display.c',
   'main.c',
+  'toplevel.c',
   'version.c',
 ])
 
 libshell_gtk4_public_headers = files([
+  'display.h',
   'main.h',
+  'toplevel.h',
   'shoyu-shell-gtk4.h',
 ])
 
@@ -64,11 +74,19 @@ libshell_gtk4_gen_headers = [
   libshell_gtk4_version,
 ]
 
-libshell_gtk4_deps = [
+libshell_gtk4_deps_private = [
+  drm,
+  gbm,
+  libudev,
+]
+
+libshell_gtk4_deps_public = [
   gobject,
   gtk4,
   gtk4_wayland,
 ]
+
+libshell_gtk4_deps = libshell_gtk4_deps_public + libshell_gtk4_deps_private
 
 darwin_versions = [
   # compatibility version
@@ -142,6 +160,6 @@ endif
 libshell_gtk4_dep = declare_dependency(
   sources: libshell_gtk4_dep_sources,
   include_directories: [conf_inc, libshell_gtk4_inc],
-  dependencies: libshell_gtk4_deps,
+  dependencies: libshell_gtk4_deps_public,
   link_with: libshell_gtk4,
   link_args: common_ldflags)

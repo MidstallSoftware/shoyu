@@ -10,6 +10,12 @@ option('vapigen',
   yield: true,
   description: 'Generate vapi files')
 
+option('vala',
+  type: 'feature',
+  value: 'auto',
+  yield: true,
+  description: 'Enable Vala code')
+
 option('documentation',
   type: 'boolean',
   value: false,

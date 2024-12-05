@@ -36,6 +36,7 @@
 
   <interface name="shoyu_shell_toplevel" version="1">
     <request name="capture">
+      <arg name="capture" type="new_id" interface="shoyu_shell_capture" />
       <arg name="buffer" type="object" interface="wl_buffer" />
     </request>
     <event name="drm_format">
@@ -44,17 +45,55 @@
     <event name="shm_format">
       <arg name="shm_format" type="uint" summary="SHM pixel format code" />
     </event>
+    <event name="damage">
+      <arg name="x" type="uint" />
+      <arg name="y" type="uint" />
+      <arg name="width" type="uint" />
+      <arg name="height" type="uint" />
+    </event>
     <event name="frame">
       <description summary="frame ready">
         An event which says the surface is ready for capture.
       </description>
-      <arg name="width" type="uint" summary="buffer width"/>
-      <arg name="height" type="uint" summary="buffer height"/>
+      <arg name="width" type="uint" summary="buffer width" />
+      <arg name="height" type="uint" summary="buffer height" />
+    </event>
+    <request name="set_geometry">
+      <arg name="x" type="uint" />
+      <arg name="y" type="uint" />
+      <arg name="width" type="uint" summary="width" />
+      <arg name="height" type="uint" summary="height" />
+    </request>
+    <event name="configure">
+      <arg name="x" type="uint" />
+      <arg name="y" type="uint" />
+      <arg name="width" type="uint" summary="width" />
+      <arg name="height" type="uint" summary="height" />
     </event>
     <event name="destroy" type="destructor">
       <description summary="toplevel destroy">
         Emitted when the toplevel is destroyed
       </description>
     </event>
+    <event name="set_title">
+      <arg name="title" type="string" />
+    </event>
+    <event name="set_app_id">
+      <arg name="app_id" type="string" />
+    </event>
+  </interface>
+
+  <interface name="shoyu_shell_capture" version="1">
+    <event name="done">
+      <description summary="capture done">
+        Emitted when the capture is complete
+      </description>
+    </event>
+
+    <request name="capture">
+      <description summary="capture">
+        Starts sending the transfer over
+      </description>
+    </request>
   </interface>
 </protocol>

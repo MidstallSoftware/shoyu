@@ -1,5 +1,6 @@
 #include "compositor-private.h"
 #include "output-private.h"
+#include "shell-toplevel-private.h"
 
 /**
  * ShoyuOutput:
@@ -56,6 +57,8 @@ static void shoyu_output_frame(struct wl_listener *listener, void *data) {
                                           });
       }
     }
+
+    wlr_output_state_set_damage(&state, &self->wlr_surface->buffer_damage);
   } else {
     wlr_render_pass_add_rect(
         pass, &(struct wlr_render_rect_options){
@@ -266,6 +269,11 @@ void shoyu_output_set_surface(ShoyuOutput *self,
   g_return_if_fail(SHOYU_IS_OUTPUT(self));
 
   self->wlr_surface = wlr_surface;
+
+  struct wlr_xdg_toplevel *wlr_xdg_toplevel =
+      wlr_xdg_toplevel_try_from_wlr_surface(wlr_surface);
+  if (wlr_xdg_toplevel != NULL)
+    shoyu_shell_toplevel_delete(self->compositor->shell, wlr_xdg_toplevel);
 
   g_object_notify_by_pspec(G_OBJECT(self), shoyu_output_props[PROP_SURFACE]);
 }

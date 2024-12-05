@@ -12,6 +12,7 @@
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_subcompositor.h>
+#include <wlr/types/wlr_viewporter.h>
 
 /**
  * ShoyuCompositor:
@@ -557,6 +558,7 @@ static void shoyu_compositor_init(ShoyuCompositor *self) {
 
   wlr_subcompositor_create(self->wl_display);
   wlr_data_device_manager_create(self->wl_display);
+  wlr_viewporter_create(self->wl_display);
 }
 
 /**
@@ -677,9 +679,25 @@ ShoyuSurface *shoyu_compositor_get_surface(ShoyuCompositor *self,
   return NULL;
 }
 
-gboolean
-shoyu_compositor_is_xdg_toplevel_claimed(ShoyuCompositor *self,
-                                         struct xdg_toplevel *xdg_toplevel) {
+ShoyuXdgToplevel *
+shoyu_compositor_get_xdg_toplevel(ShoyuCompositor *self,
+                                  struct wlr_xdg_toplevel *wlr_xdg_toplevel) {
+  g_return_val_if_fail(SHOYU_IS_COMPOSITOR(self), NULL);
+
+  for (GList *item = self->xdg_toplevels; item != NULL; item = item->next) {
+    ShoyuXdgToplevel *xdg_toplevel = SHOYU_XDG_TOPLEVEL(item->data);
+
+    if (xdg_toplevel->is_invalidated)
+      continue;
+    if (xdg_toplevel->wlr_xdg_toplevel == wlr_xdg_toplevel)
+      return xdg_toplevel;
+  }
+
+  return NULL;
+}
+
+gboolean shoyu_compositor_is_xdg_toplevel_claimed(
+    ShoyuCompositor *self, struct wlr_xdg_toplevel *xdg_toplevel) {
   g_return_val_if_fail(SHOYU_IS_COMPOSITOR(self), FALSE);
 
   for (GList *item = self->outputs; item != NULL; item = item->next) {
@@ -699,7 +717,7 @@ shoyu_compositor_is_xdg_toplevel_claimed(ShoyuCompositor *self,
 }
 
 ShoyuOutput *shoyu_compositor_get_xdg_toplevel_claimed_output(
-    ShoyuCompositor *self, struct xdg_toplevel *xdg_toplevel) {
+    ShoyuCompositor *self, struct wlr_xdg_toplevel *xdg_toplevel) {
   g_return_val_if_fail(SHOYU_IS_COMPOSITOR(self), FALSE);
 
   for (GList *item = self->outputs; item != NULL; item = item->next) {

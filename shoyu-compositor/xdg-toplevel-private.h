@@ -12,6 +12,8 @@ struct _ShoyuXdgToplevel {
     struct wlr_xdg_toplevel *wlr_xdg_toplevel;
 
     bool is_invalidated;
+    guint x;
+    guint y;
 
     struct wl_listener destroy;
 };
@@ -30,3 +32,7 @@ void shoyu_xdg_toplevel_unrealize(ShoyuXdgToplevel *self);
 
 void shoyu_shell_xdg_toplevel_bind_shell(ShoyuXdgToplevel *self);
 void shoyu_shell_xdg_toplevel_unbind_shell(ShoyuXdgToplevel *self);
+
+void shoyu_xdg_toplevel_set_geometry(ShoyuXdgToplevel *self, uint32_t x,
+                                     uint32_t y, uint32_t width,
+                                     uint32_t height);

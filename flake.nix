@@ -54,6 +54,9 @@
               gtk3
               gtk4
               libxkbcommon
+              mesa
+              udev
+              libepoxy
             ];
 
             mesonFlags = [

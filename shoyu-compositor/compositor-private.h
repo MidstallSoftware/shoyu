@@ -233,9 +233,12 @@ ShoyuOutput *shoyu_compositor_get_output(ShoyuCompositor *self,
                                          struct wlr_output *wlr_output);
 ShoyuSurface *shoyu_compositor_get_surface(ShoyuCompositor *self,
                                            struct wlr_surface *wlr_surface);
+ShoyuXdgToplevel *
+shoyu_compositor_get_xdg_toplevel(ShoyuCompositor *self,
+                                  struct wlr_xdg_toplevel *wlr_xdg_toplevel);
 
 gboolean
 shoyu_compositor_is_xdg_toplevel_claimed(ShoyuCompositor *self,
-                                         struct xdg_toplevel *xdg_toplevel);
+                                         struct wlr_xdg_toplevel *xdg_toplevel);
 ShoyuOutput *shoyu_compositor_get_xdg_toplevel_claimed_output(
-    ShoyuCompositor *self, struct xdg_toplevel *xdg_toplevel);
+    ShoyuCompositor *self, struct wlr_xdg_toplevel *xdg_toplevel);

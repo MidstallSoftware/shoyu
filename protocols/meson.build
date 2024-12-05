@@ -1,5 +1,6 @@
 protocols = [
   wayland.find_protocol('xdg-shell'),
+  wayland.find_protocol('linux-dmabuf', version: 1),
   join_paths(meson.current_source_dir(), 'shoyu-shell.xml'),
 ]
 
