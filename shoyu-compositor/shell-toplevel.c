@@ -14,6 +14,8 @@ typedef struct {
     struct wl_listener surface_commit;
     struct wl_listener surface_destroy;
     struct wl_listener xdg_surface_configure;
+    struct wl_listener xdg_toplevel_set_title;
+    struct wl_listener xdg_toplevel_set_app_id;
     struct wl_listener xdg_toplevel_destroy;
     ShoyuShell *shell;
 } ShellToplevel;
@@ -129,6 +131,8 @@ static void shoyu_shell_toplevel_destroy(ShellToplevel *self) {
   wl_list_remove(&self->surface_commit.link);
   wl_list_remove(&self->surface_destroy.link);
   wl_list_remove(&self->xdg_surface_configure.link);
+  wl_list_remove(&self->xdg_toplevel_set_title.link);
+  wl_list_remove(&self->xdg_toplevel_set_app_id.link);
   wl_list_remove(&self->xdg_toplevel_destroy.link);
   shoyu_shell_toplevel_send_destroy(self->resource);
   free(self);
@@ -197,6 +201,23 @@ shoyu_shell_toplevel_xdg_surface_configure(struct wl_listener *listener,
 }
 
 static void
+shoyu_shell_toplevel_xdg_toplevel_set_title(struct wl_listener *listener,
+                                            void *data) {
+  ShellToplevel *self = wl_container_of(listener, self, xdg_toplevel_set_title);
+  const char *title = data;
+  shoyu_shell_toplevel_send_set_title(self->resource, title);
+}
+
+static void
+shoyu_shell_toplevel_xdg_toplevel_set_app_id(struct wl_listener *listener,
+                                             void *data) {
+  ShellToplevel *self =
+      wl_container_of(listener, self, xdg_toplevel_set_app_id);
+  const char *app_id = data;
+  shoyu_shell_toplevel_send_set_app_id(self->resource, app_id);
+}
+
+static void
 shoyu_shell_toplevel_xdg_toplevel_destroy(struct wl_listener *listener,
                                           void *data) {
   ShellToplevel *self = wl_container_of(listener, self, xdg_toplevel_destroy);
@@ -248,6 +269,16 @@ void shoyu_shell_toplevel_create(struct wl_client *wl_client,
       shoyu_shell_toplevel_xdg_surface_configure;
   wl_signal_add(&shell_toplevel->wlr_xdg_toplevel->base->events.configure,
                 &shell_toplevel->xdg_surface_configure);
+
+  shell_toplevel->xdg_toplevel_set_title.notify =
+      shoyu_shell_toplevel_xdg_toplevel_set_title;
+  wl_signal_add(&shell_toplevel->wlr_xdg_toplevel->events.set_title,
+                &shell_toplevel->xdg_toplevel_set_title);
+
+  shell_toplevel->xdg_toplevel_set_app_id.notify =
+      shoyu_shell_toplevel_xdg_toplevel_set_app_id;
+  wl_signal_add(&shell_toplevel->wlr_xdg_toplevel->events.set_app_id,
+                &shell_toplevel->xdg_toplevel_set_app_id);
 
   shell_toplevel->xdg_toplevel_destroy.notify =
       shoyu_shell_toplevel_xdg_toplevel_destroy;

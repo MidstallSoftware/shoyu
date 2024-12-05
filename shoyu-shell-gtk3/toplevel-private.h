@@ -20,6 +20,8 @@ struct _ShoyuShellGtkToplevel {
     cairo_surface_t *cairo_surface;
     GLuint texture_id;
     GList *damage;
+    gchar *title;
+    gchar *app_id;
 };
 
 struct _ShoyuShellGtkToplevelClass {

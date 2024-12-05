@@ -6,6 +6,8 @@ enum {
   PROP_0 = 0,
   PROP_DISPLAY,
   PROP_TEXTURE,
+  PROP_TITLE,
+  PROP_APP_ID,
   N_PROPERTIES,
 
   SIG_DESTROY = 0,
@@ -229,6 +231,28 @@ static void shoyu_shell_gtk_toplevel_configure(
                 width, height);
 }
 
+static void shoyu_shell_gtk_toplevel_set_title(
+    void *data, struct shoyu_shell_toplevel *shoyu_shell_toplevel,
+    const char *title) {
+  ShoyuShellGtkToplevel *self = SHOYU_SHELL_GTK_TOPLEVEL(data);
+
+  g_clear_pointer(&self->title, (GDestroyNotify)g_free);
+  self->title = g_strdup(title);
+  g_object_notify_by_pspec(G_OBJECT(self),
+                           shoyu_shell_gtk_toplevel_props[PROP_TITLE]);
+}
+
+static void shoyu_shell_gtk_toplevel_set_app_id(
+    void *data, struct shoyu_shell_toplevel *shoyu_shell_toplevel,
+    const char *app_id) {
+  ShoyuShellGtkToplevel *self = SHOYU_SHELL_GTK_TOPLEVEL(data);
+
+  g_clear_pointer(&self->app_id, (GDestroyNotify)g_free);
+  self->app_id = g_strdup(app_id);
+  g_object_notify_by_pspec(G_OBJECT(self),
+                           shoyu_shell_gtk_toplevel_props[PROP_APP_ID]);
+}
+
 static void shoyu_shell_gtk_toplevel_destroy(
     void *data, struct shoyu_shell_toplevel *shoyu_shell_toplevel) {
   ShoyuShellGtkToplevel *toplevel = SHOYU_SHELL_GTK_TOPLEVEL(data);
@@ -246,6 +270,8 @@ static const struct shoyu_shell_toplevel_listener
       .damage = shoyu_shell_gtk_toplevel_damage,
       .frame = shoyu_shell_gtk_toplevel_frame,
       .configure = shoyu_shell_gtk_toplevel_configure,
+      .set_title = shoyu_shell_gtk_toplevel_set_title,
+      .set_app_id = shoyu_shell_gtk_toplevel_set_app_id,
       .destroy = shoyu_shell_gtk_toplevel_destroy,
 };
 
@@ -254,6 +280,8 @@ static void shoyu_shell_gtk_toplevel_finalize(GObject *object) {
 
   g_clear_object(&self->display);
   g_clear_list(&self->damage, (GDestroyNotify)g_free);
+  g_clear_pointer(&self->title, (GDestroyNotify)g_free);
+  g_clear_pointer(&self->app_id, (GDestroyNotify)g_free);
 
   G_OBJECT_CLASS(shoyu_shell_gtk_toplevel_parent_class)->finalize(object);
 }
@@ -286,6 +314,12 @@ static void shoyu_shell_gtk_toplevel_get_property(GObject *object,
     case PROP_TEXTURE:
       g_value_set_object(value, G_OBJECT(self->texture));
       break;
+    case PROP_TITLE:
+      g_value_set_string(value, self->title);
+      break;
+    case PROP_APP_ID:
+      g_value_set_string(value, self->app_id);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
       break;
@@ -308,6 +342,14 @@ shoyu_shell_gtk_toplevel_class_init(ShoyuShellGtkToplevelClass *class) {
   shoyu_shell_gtk_toplevel_props[PROP_TEXTURE] = g_param_spec_object(
       "texture", "Gdk Texture",
       "The texture which contains the contents of the window", GDK_TYPE_TEXTURE,
+      G_PARAM_READABLE);
+
+  shoyu_shell_gtk_toplevel_props[PROP_TITLE] =
+      g_param_spec_string("title", "Window title", "The title of the window",
+                          NULL, G_PARAM_READABLE);
+
+  shoyu_shell_gtk_toplevel_props[PROP_APP_ID] = g_param_spec_string(
+      "app-id", "Application ID", "The app ID associated with the window", NULL,
       G_PARAM_READABLE);
 
   g_object_class_install_properties(object_class, N_PROPERTIES,
