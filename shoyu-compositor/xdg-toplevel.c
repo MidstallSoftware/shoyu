@@ -199,3 +199,14 @@ void shoyu_shell_xdg_toplevel_unbind_shell(ShoyuXdgToplevel *self) {
                                 self->wlr_xdg_toplevel);
   }
 }
+
+void shoyu_xdg_toplevel_set_geometry(ShoyuXdgToplevel *self, uint32_t x,
+                                     uint32_t y, uint32_t width,
+                                     uint32_t height) {
+  g_return_if_fail(SHOYU_IS_XDG_TOPLEVEL(self));
+  g_return_if_fail(self->wlr_xdg_toplevel != NULL && !self->is_invalidated);
+
+  self->x = x;
+  self->y = y;
+  wlr_xdg_toplevel_set_size(self->wlr_xdg_toplevel, width, height);
+}

@@ -1,6 +1,7 @@
 #include "compositor-private.h"
 #include "shell-private.h"
 #include "shell-toplevel-private.h"
+#include "xdg-toplevel-private.h"
 #include <shoyu-shell-server-protocol.h>
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/util/addon.h>
@@ -12,6 +13,7 @@ typedef struct {
     struct wlr_xdg_toplevel *wlr_xdg_toplevel;
     struct wl_listener surface_commit;
     struct wl_listener surface_destroy;
+    struct wl_listener xdg_surface_configure;
     struct wl_listener xdg_toplevel_destroy;
     ShoyuShell *shell;
 } ShellToplevel;
@@ -95,8 +97,23 @@ static void shoyu_shell_toplevel_capture(struct wl_client *client,
                                  capture, shoyu_shell_toplevel_capture_destroy);
 }
 
+static void shoyu_shell_toplevel_set_geometry(struct wl_client *client,
+                                              struct wl_resource *resource,
+                                              uint32_t x, uint32_t y,
+                                              uint32_t width, uint32_t height) {
+  ShellToplevel *self = wl_resource_get_user_data(resource);
+
+  ShoyuXdgToplevel *xdg_toplevel = shoyu_compositor_get_xdg_toplevel(
+      self->shell->compositor, self->wlr_xdg_toplevel);
+  g_return_if_fail(xdg_toplevel != NULL);
+  g_return_if_fail(SHOYU_XDG_TOPLEVEL(xdg_toplevel));
+
+  shoyu_xdg_toplevel_set_geometry(xdg_toplevel, x, y, width, height);
+}
+
 static const struct shoyu_shell_toplevel_interface shoyu_shell_toplevel_impl = {
   .capture = shoyu_shell_toplevel_capture,
+  .set_geometry = shoyu_shell_toplevel_set_geometry,
 };
 
 static void shoyu_shell_toplevel_destroy(ShellToplevel *self) {
@@ -111,6 +128,7 @@ static void shoyu_shell_toplevel_destroy(ShellToplevel *self) {
   wl_resource_set_user_data(self->resource, NULL);
   wl_list_remove(&self->surface_commit.link);
   wl_list_remove(&self->surface_destroy.link);
+  wl_list_remove(&self->xdg_surface_configure.link);
   wl_list_remove(&self->xdg_toplevel_destroy.link);
   shoyu_shell_toplevel_send_destroy(self->resource);
   free(self);
@@ -162,6 +180,23 @@ static void shoyu_shell_toplevel_surface_destroy(struct wl_listener *listener,
 }
 
 static void
+shoyu_shell_toplevel_xdg_surface_configure(struct wl_listener *listener,
+                                           void *data) {
+  ShellToplevel *self = wl_container_of(listener, self, xdg_surface_configure);
+
+  struct wlr_xdg_surface_configure *event = data;
+
+  ShoyuXdgToplevel *xdg_toplevel = shoyu_compositor_get_xdg_toplevel(
+      self->shell->compositor, self->wlr_xdg_toplevel);
+  g_return_if_fail(xdg_toplevel != NULL);
+  g_return_if_fail(SHOYU_XDG_TOPLEVEL(xdg_toplevel));
+
+  shoyu_shell_toplevel_send_configure(
+      self->resource, xdg_toplevel->x, xdg_toplevel->y,
+      event->toplevel_configure->width, event->toplevel_configure->height);
+}
+
+static void
 shoyu_shell_toplevel_xdg_toplevel_destroy(struct wl_listener *listener,
                                           void *data) {
   ShellToplevel *self = wl_container_of(listener, self, xdg_toplevel_destroy);
@@ -208,6 +243,11 @@ void shoyu_shell_toplevel_create(struct wl_client *wl_client,
   wl_signal_add(
       &shell_toplevel->wlr_xdg_toplevel->base->surface->events.destroy,
       &shell_toplevel->surface_destroy);
+
+  shell_toplevel->xdg_surface_configure.notify =
+      shoyu_shell_toplevel_xdg_surface_configure;
+  wl_signal_add(&shell_toplevel->wlr_xdg_toplevel->base->events.configure,
+                &shell_toplevel->xdg_surface_configure);
 
   shell_toplevel->xdg_toplevel_destroy.notify =
       shoyu_shell_toplevel_xdg_toplevel_destroy;

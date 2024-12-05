@@ -55,8 +55,20 @@
       <description summary="frame ready">
         An event which says the surface is ready for capture.
       </description>
-      <arg name="width" type="uint" summary="buffer width"/>
-      <arg name="height" type="uint" summary="buffer height"/>
+      <arg name="width" type="uint" summary="buffer width" />
+      <arg name="height" type="uint" summary="buffer height" />
+    </event>
+    <request name="set_geometry">
+      <arg name="x" type="uint" />
+      <arg name="y" type="uint" />
+      <arg name="width" type="uint" summary="width" />
+      <arg name="height" type="uint" summary="height" />
+    </request>
+    <event name="configure">
+      <arg name="x" type="uint" />
+      <arg name="y" type="uint" />
+      <arg name="width" type="uint" summary="width" />
+      <arg name="height" type="uint" summary="height" />
     </event>
     <event name="destroy" type="destructor">
       <description summary="toplevel destroy">

@@ -679,6 +679,23 @@ ShoyuSurface *shoyu_compositor_get_surface(ShoyuCompositor *self,
   return NULL;
 }
 
+ShoyuXdgToplevel *
+shoyu_compositor_get_xdg_toplevel(ShoyuCompositor *self,
+                                  struct wlr_xdg_toplevel *wlr_xdg_toplevel) {
+  g_return_val_if_fail(SHOYU_IS_COMPOSITOR(self), NULL);
+
+  for (GList *item = self->xdg_toplevels; item != NULL; item = item->next) {
+    ShoyuXdgToplevel *xdg_toplevel = SHOYU_XDG_TOPLEVEL(item->data);
+
+    if (xdg_toplevel->is_invalidated)
+      continue;
+    if (xdg_toplevel->wlr_xdg_toplevel == wlr_xdg_toplevel)
+      return xdg_toplevel;
+  }
+
+  return NULL;
+}
+
 gboolean shoyu_compositor_is_xdg_toplevel_claimed(
     ShoyuCompositor *self, struct wlr_xdg_toplevel *xdg_toplevel) {
   g_return_val_if_fail(SHOYU_IS_COMPOSITOR(self), FALSE);

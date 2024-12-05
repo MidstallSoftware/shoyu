@@ -11,6 +11,7 @@ enum {
   N_PROPERTIES,
 
   SIG_DESTROY = 0,
+  SIG_CONFIGURE,
   SIG_REALIZED,
   SIG_UNREALIZED,
   SIG_FRAME,
@@ -234,6 +235,14 @@ static void shoyu_shell_gtk_toplevel_frame(
   }
 }
 
+static void shoyu_shell_gtk_toplevel_configure(
+    void *data, struct shoyu_shell_toplevel *shoyu_shell_toplevel, uint32_t x,
+    uint32_t y, uint32_t width, uint32_t height) {
+  ShoyuShellGtkToplevel *toplevel = SHOYU_SHELL_GTK_TOPLEVEL(data);
+  g_signal_emit(toplevel, shoyu_shell_gtk_toplevel_sigs[SIG_CONFIGURE], 0, x, y,
+                width, height);
+}
+
 static void shoyu_shell_gtk_toplevel_destroy(
     void *data, struct shoyu_shell_toplevel *shoyu_shell_toplevel) {
   ShoyuShellGtkToplevel *toplevel = SHOYU_SHELL_GTK_TOPLEVEL(data);
@@ -250,6 +259,7 @@ static const struct shoyu_shell_toplevel_listener
       .shm_format = shoyu_shell_gtk_toplevel_shm_format,
       .damage = shoyu_shell_gtk_toplevel_damage,
       .frame = shoyu_shell_gtk_toplevel_frame,
+      .configure = shoyu_shell_gtk_toplevel_configure,
       .destroy = shoyu_shell_gtk_toplevel_destroy,
 };
 
@@ -346,6 +356,19 @@ shoyu_shell_gtk_toplevel_class_init(ShoyuShellGtkToplevelClass *class) {
                    0, NULL, NULL, NULL, G_TYPE_NONE, 0);
 
   /**
+   * ShoyuShellGtkToplevel::configure:
+   * @toplevel: the object which received the signal
+   * @x: the x position
+   * @y: the y position
+   * @width: the width of the window
+   * @height: the height of the window
+   */
+  shoyu_shell_gtk_toplevel_sigs[SIG_CONFIGURE] =
+      g_signal_new("configure", SHOYU_SHELL_GTK_TYPE_TOPLEVEL,
+                   G_SIGNAL_RUN_LAST, 0, NULL, NULL, NULL, G_TYPE_NONE, 4,
+                   G_TYPE_UINT, G_TYPE_UINT, G_TYPE_UINT, G_TYPE_UINT);
+
+  /**
    * ShoyuShellGtkToplevel::realized:
    * @toplevel: a #ShoyuShellGtkToplevel
    * @shoyu_shell_toplevel: A Shoyu Shell toplevel
@@ -403,4 +426,22 @@ void shoyu_shell_gtk_toplevel_unrealize(ShoyuShellGtkToplevel *self) {
   self->is_invalidated = TRUE;
 
   g_signal_emit(self, shoyu_shell_gtk_toplevel_sigs[SIG_UNREALIZED], 0);
+}
+
+/**
+ * shoyu_shell_gtk_toplevel_set_geometry:
+ * @self: A #ShoyuShellGtkToplevel
+ * @x: The x position
+ * @y: The y position
+ * @width: The width of the window
+ * @height: The height of the window
+ */
+void shoyu_shell_gtk_toplevel_set_geometry(ShoyuShellGtkToplevel *self,
+                                           uint32_t x, uint32_t y,
+                                           uint32_t width, uint32_t height) {
+  g_return_if_fail(SHOYU_SHELL_GTK_IS_TOPLEVEL(self));
+  g_return_if_fail(self->shoyu_shell_toplevel != NULL && !self->is_invalidated);
+
+  shoyu_shell_toplevel_set_geometry(self->shoyu_shell_toplevel, x, y, width,
+                                    height);
 }
