@@ -173,3 +173,8 @@ libcompositor_dep = declare_dependency(
   dependencies: libcompositor_deps,
   link_with: libcompositor,
   link_args: common_ldflags)
+
+pkg_config.generate(libcompositor,
+  name: 'shoyu-compositor',
+  description: 'Compositor API for Shoyu',
+  requires: ['gobject-2.0', 'gio-2.0'])

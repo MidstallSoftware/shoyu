@@ -167,3 +167,8 @@ libshell_gtk3_dep = declare_dependency(
   dependencies: libshell_gtk3_deps_public,
   link_with: libshell_gtk3,
   link_args: common_ldflags)
+
+pkg_config.generate(libshell_gtk3,
+  name: 'shoyu-shell-gtk3',
+  description: 'Shoyu Shell client API for GTK 3',
+  requires: ['gobject-2.0', 'gio-2.0', 'gtk+-3.0'])

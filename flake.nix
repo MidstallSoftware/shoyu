@@ -25,7 +25,7 @@
 
       defaultOverlay =
         pkgs: prev: with pkgs; {
-          shoyu = stdenv.mkDerivation {
+          shoyu = stdenv.mkDerivation (finalAttrs: {
             pname = "shoyu";
             version = self.shortRev or "dirty";
 
@@ -48,15 +48,18 @@
               wayland-scanner
             ];
 
-            buildInputs = [
-              glib
-              wlroots_0_18
-              gtk3
-              gtk4
+            buildInputs = finalAttrs.propagatedBuildInputs ++ [
               libxkbcommon
               mesa
               udev
               libepoxy
+            ];
+
+            propagatedBuildInputs = [
+              glib
+              wlroots_0_18
+              gtk3
+              gtk4
             ];
 
             mesonFlags = [
@@ -75,7 +78,7 @@
             postFixup = ''
               moveToOutput "share/doc" "$devdoc"
             '';
-          };
+          });
         };
     in
     flake-utils.lib.eachSystem (import systems) (

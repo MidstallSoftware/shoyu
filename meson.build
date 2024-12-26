@@ -11,6 +11,7 @@ project('shoyu', 'c',
 
 gnome = import('gnome')
 wayland = import('unstable-wayland')
+pkg_config = import('pkgconfig')
 
 add_project_arguments('-DG_LOG_USE_STRUCTURED=1', language: 'c')
 add_project_arguments('-DGLIB_DISABLE_DEPRECATION_WARNINGS', language: 'c')

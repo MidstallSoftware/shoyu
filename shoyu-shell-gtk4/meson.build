@@ -163,3 +163,8 @@ libshell_gtk4_dep = declare_dependency(
   dependencies: libshell_gtk4_deps_public,
   link_with: libshell_gtk4,
   link_args: common_ldflags)
+
+pkg_config.generate(libshell_gtk4,
+  name: 'shoyu-shell-gtk4',
+  description: 'Shoyu Shell client API for GTK 4',
+  requires: ['gobject-2.0', 'gio-2.0', 'gtk4'])
