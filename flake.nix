@@ -2,11 +2,11 @@
   description = "A compositor framework for Flutter";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs";
+    nixpkgs.url = "github:NixOS/nixpkgs/release-24.11";
     systems.url = "github:nix-systems/default-linux";
     flake-utils.url = "github:numtide/flake-utils";
     nixos-apple-silicon = {
-      url = "github:tpwrules/nixos-apple-silicon/release-2024-11-12";
+      url = "github:tpwrules/nixos-apple-silicon/release-2024-12-25";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
