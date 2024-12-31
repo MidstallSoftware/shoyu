@@ -5,6 +5,8 @@
 struct _ShoyuCompositorRunnerApplication {
     GApplication parent_instance;
     ShoyuCompositor *compositor;
+    gchar **argv;
+    GSubprocess *shell;
 };
 
 struct _ShoyuCompositorRunnerApplicationClass {
@@ -22,6 +24,9 @@ static void shoyu_compositor_runner_application_constructed(GObject *object) {
       SHOYU_COMPOSITOR_RUNNER_APPLICATION(object);
 
   self->compositor = shoyu_compositor_new_with_application(G_APPLICATION(self));
+
+  g_setenv("WAYLAND_DISPLAY", shoyu_compositor_get_socket(self->compositor),
+           TRUE);
 }
 
 static void shoyu_compositor_runner_application_finalize(GObject *object) {
@@ -29,6 +34,8 @@ static void shoyu_compositor_runner_application_finalize(GObject *object) {
       SHOYU_COMPOSITOR_RUNNER_APPLICATION(object);
 
   g_clear_object(&self->compositor);
+  g_clear_object(&self->shell);
+  g_clear_pointer(&self->argv, (GDestroyNotify)g_strfreev);
 
   G_OBJECT_CLASS(shoyu_compositor_runner_application_parent_class)
       ->finalize(object);
@@ -40,10 +47,24 @@ shoyu_compositor_runner_application_activate(GApplication *application) {
       SHOYU_COMPOSITOR_RUNNER_APPLICATION(application);
 
   shoyu_compositor_start(self->compositor);
+
+  if (self->argv != NULL) {
+    GError *error = NULL;
+    self->shell = g_subprocess_newv(
+        self->argv, G_SUBPROCESS_FLAGS_SEARCH_PATH_FROM_ENVP, &error);
+    if (self->shell == NULL) {
+      g_error("Failed to launch the shell process: %s", error->message);
+      g_error_free(error);
+      return;
+    }
+  }
 }
 
 static int shoyu_compositor_runner_application_command_line(
     GApplication *application, GApplicationCommandLine *cmdline) {
+  ShoyuCompositorRunnerApplication *self =
+      SHOYU_COMPOSITOR_RUNNER_APPLICATION(application);
+
   int argc = 0;
   gchar **argv = g_application_command_line_get_arguments(cmdline, &argc);
   g_assert(argv != NULL && argc > 0);
@@ -61,11 +82,12 @@ static int shoyu_compositor_runner_application_command_line(
     return 0;
   }
 
-  // TODO: handle the 1st argument which is passed. This will be used to run the
-  // shell once the compositor is up.
+  self->argv = argc > 1 ? g_strdupv(argv + 1) : NULL;
 
   g_free(argv);
   g_option_context_free(context);
+
+  g_application_activate(application);
   return 0;
 }
 
