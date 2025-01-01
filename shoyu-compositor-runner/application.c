@@ -103,8 +103,9 @@ static int shoyu_compositor_runner_application_command_line(
     return 0;
   }
 
-  self->argv =
-      argc > 1 ? g_strdupv(argv + (g_strcmp0(argv[0], "--") ? 2 : 1)) : NULL;
+  self->argv = argc > 1
+                   ? g_strdupv(argv + (g_strcmp0(argv[0], "--") == 0 ? 2 : 1))
+                   : NULL;
 
   g_free(argv);
   g_option_context_free(context);
