@@ -16,6 +16,19 @@ struct _ShoyuCompositorRunnerApplicationClass {
 G_DEFINE_TYPE(ShoyuCompositorRunnerApplication,
               shoyu_compositor_runner_application, G_TYPE_APPLICATION)
 
+static void shoyu_compositor_runner_application_shell_wait(GObject *object,
+                                                           GAsyncResult *res,
+                                                           gpointer data) {
+  GError *error = NULL;
+  if (!g_subprocess_wait_finish(G_SUBPROCESS(object), res, &error)) {
+    g_error("Failed to wait for the shell process: %s", error->message);
+    g_error_free(error);
+    return;
+  }
+
+  exit(g_subprocess_get_exit_status(G_SUBPROCESS(object)));
+}
+
 static void shoyu_compositor_runner_application_constructed(GObject *object) {
   G_OBJECT_CLASS(shoyu_compositor_runner_application_parent_class)
       ->constructed(object);
@@ -61,6 +74,10 @@ shoyu_compositor_runner_application_activate(GApplication *application) {
       g_error_free(error);
       return;
     }
+
+    g_subprocess_wait_async(self->shell, NULL,
+                            shoyu_compositor_runner_application_shell_wait,
+                            self);
   }
 }
 
@@ -87,7 +104,7 @@ static int shoyu_compositor_runner_application_command_line(
   }
 
   self->argv =
-      argv > 1 ? g_strdupv(argv + (g_strcmp0(argv[0], "--") ? 2 : 1)) : NULL;
+      argc > 1 ? g_strdupv(argv + (g_strcmp0(argv[0], "--") ? 2 : 1)) : NULL;
 
   g_free(argv);
   g_option_context_free(context);
