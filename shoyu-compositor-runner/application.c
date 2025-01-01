@@ -50,8 +50,12 @@ shoyu_compositor_runner_application_activate(GApplication *application) {
 
   if (self->argv != NULL) {
     GError *error = NULL;
-    self->shell = g_subprocess_newv(
-        self->argv, G_SUBPROCESS_FLAGS_SEARCH_PATH_FROM_ENVP, &error);
+    self->shell =
+        g_subprocess_newv(self->argv,
+                          G_SUBPROCESS_FLAGS_STDIN_INHERIT |
+                              G_SUBPROCESS_FLAGS_SEARCH_PATH_FROM_ENVP |
+                              G_SUBPROCESS_FLAGS_INHERIT_FDS,
+                          &error);
     if (self->shell == NULL) {
       g_error("Failed to launch the shell process: %s", error->message);
       g_error_free(error);
