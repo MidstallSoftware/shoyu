@@ -68,6 +68,13 @@ struct _ShoyuCompositorClass {
     GType input_type;
 
     /**
+     * ShoyuCompositor:input_type_keyboard:
+     *
+     * The type to create when a #ShoyuKeyboardInput is being created.
+     */
+    GType input_type_keyboard;
+
+    /**
      * ShoyuCompositor:input_type_pointer:
      *
      * The type to create when a #ShoyuPointerInput is being created.

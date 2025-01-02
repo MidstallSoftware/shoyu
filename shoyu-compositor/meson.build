@@ -15,6 +15,7 @@ libcompositor_private_sources = files([
 libcompositor_private_h_sources = files([
   'compositor-private.h',
   'input-private.h',
+  'keyboard-input-private.h',
   'output-private.h',
   'pointer-input-private.h',
   'shell-private.h',
@@ -28,6 +29,7 @@ libcompositor_private_h_sources = files([
 libcompositor_public_sources = files([
   'compositor.c',
   'input.c',
+  'keyboard-input.c',
   'main.c',
   'output.c',
   'pointer-input.c',
@@ -41,6 +43,7 @@ libcompositor_public_sources = files([
 libcompositor_public_headers = files([
   'compositor.h',
   'input.h',
+  'keyboard-input.h',
   'main.h',
   'output.h',
   'pointer-input.h',
@@ -100,6 +103,7 @@ libcompositor_deps = [
   wlroots,
   wayland_server,
   pixman,
+  xkbcommon,
 ]
 
 darwin_versions = [

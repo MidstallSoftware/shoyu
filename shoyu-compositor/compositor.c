@@ -8,6 +8,7 @@
 #include "wayland-event-source.h"
 #include "xdg-toplevel-private.h"
 
+#include "keyboard-input.h"
 #include "pointer-input.h"
 
 #include <glib/gi18n-lib.h>
@@ -389,6 +390,10 @@ shoyu_compositor_real_create_input(ShoyuCompositor *self,
   GType input_type = class->input_type;
 
   switch (input_device->type) {
+    case WLR_INPUT_DEVICE_KEYBOARD:
+      input_type = class->input_type_keyboard;
+      caps |= WL_SEAT_CAPABILITY_KEYBOARD;
+      break;
     case WLR_INPUT_DEVICE_POINTER:
       input_type = class->input_type_pointer;
       caps |= WL_SEAT_CAPABILITY_POINTER;
@@ -435,6 +440,7 @@ static void shoyu_compositor_class_init(ShoyuCompositorClass *class) {
 
   class->output_type = SHOYU_TYPE_OUTPUT;
   class->input_type = SHOYU_TYPE_INPUT;
+  class->input_type_keyboard = SHOYU_TYPE_KEYBOARD_INPUT;
   class->input_type_pointer = SHOYU_TYPE_POINTER_INPUT;
   class->surface_type = SHOYU_TYPE_SURFACE;
   class->xdg_toplevel_type = SHOYU_TYPE_XDG_TOPLEVEL;

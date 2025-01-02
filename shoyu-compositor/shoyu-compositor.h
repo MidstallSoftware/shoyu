@@ -5,6 +5,7 @@
 #include <shoyu-compositor/compositor.h>
 #include <shoyu-compositor/config.h>
 #include <shoyu-compositor/input.h>
+#include <shoyu-compositor/keyboard-input.h>
 #include <shoyu-compositor/main.h>
 #include <shoyu-compositor/output.h>
 #include <shoyu-compositor/pointer-input.h>

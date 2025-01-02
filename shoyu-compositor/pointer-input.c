@@ -35,12 +35,22 @@ static void shoyu_pointer_input_process_cursor_motion(ShoyuPointerInput *self,
   double rx = self->cursor->x - sx;
   double ry = self->cursor->y - sy;
 
+  struct wlr_keyboard *wlr_keyboard =
+      wlr_seat_get_keyboard(input->compositor->wlr_seat);
+
   if (xdg_toplevel != NULL) {
     wlr_seat_pointer_notify_enter(input->compositor->wlr_seat,
                                   xdg_toplevel->wlr_xdg_toplevel->base->surface,
                                   rx, ry);
 
     wlr_seat_pointer_notify_motion(input->compositor->wlr_seat, time, rx, ry);
+
+    if (wlr_keyboard != NULL) {
+      wlr_seat_keyboard_notify_enter(
+          input->compositor->wlr_seat,
+          xdg_toplevel->wlr_xdg_toplevel->base->surface, wlr_keyboard->keycodes,
+          wlr_keyboard->num_keycodes, &wlr_keyboard->modifiers);
+    }
   } else {
     if (output->wlr_surface != NULL) {
       struct wlr_xdg_toplevel *wlr_xdg_toplevel =
@@ -54,6 +64,13 @@ static void shoyu_pointer_input_process_cursor_motion(ShoyuPointerInput *self,
                                     output->wlr_surface, rx, ry);
 
       wlr_seat_pointer_notify_motion(input->compositor->wlr_seat, time, rx, ry);
+
+      if (wlr_keyboard != NULL) {
+        wlr_seat_keyboard_notify_enter(
+            input->compositor->wlr_seat, output->wlr_surface,
+            wlr_keyboard->keycodes, wlr_keyboard->num_keycodes,
+            &wlr_keyboard->modifiers);
+      }
     } else {
       wlr_seat_pointer_clear_focus(input->compositor->wlr_seat);
     }
