@@ -232,3 +232,9 @@ GListModel *shoyu_shell_gtk_display_get_toplevels(ShoyuShellGtkDisplay *self) {
   g_return_val_if_fail(SHOYU_SHELL_GTK_IS_DISPLAY(self), NULL);
   return G_LIST_MODEL(self->toplevels);
 }
+
+void shoyu_shell_gtk_display_clear_focus(ShoyuShellGtkDisplay *self) {
+  g_return_if_fail(SHOYU_SHELL_GTK_IS_DISPLAY(self));
+
+  shoyu_shell_clear_focus(self->shoyu_shell);
+}

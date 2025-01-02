@@ -22,8 +22,21 @@ static GParamSpec *shoyu_shell_props[N_PROPERTIES] = {
 
 G_DEFINE_TYPE(ShoyuShell, shoyu_shell, G_TYPE_OBJECT)
 
+static void shoyu_shell_clear_focus(struct wl_client *wl_client,
+                                    struct wl_resource *shell_resource) {
+  ShoyuShell *shell = wl_resource_get_user_data(shell_resource);
+
+  for (GList *item = shell->compositor->xdg_toplevels; item != NULL;
+       item = item->next) {
+    ShoyuXdgToplevel *xdg_toplevel = SHOYU_XDG_TOPLEVEL(item->data);
+
+    g_object_set(xdg_toplevel, "focus", FALSE, NULL);
+  }
+}
+
 static const struct shoyu_shell_interface shoyu_shell_impl = {
   .get_output = shoyu_shell_get_output,
+  .clear_focus = shoyu_shell_clear_focus,
 };
 
 static void shoyu_shell_resource_destroy(struct wl_resource *resource) {

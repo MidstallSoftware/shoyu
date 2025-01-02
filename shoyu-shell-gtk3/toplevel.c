@@ -487,3 +487,10 @@ void shoyu_shell_gtk_toplevel_set_geometry(ShoyuShellGtkToplevel *self,
   shoyu_shell_toplevel_set_geometry(self->shoyu_shell_toplevel, x, y, width,
                                     height);
 }
+
+void shoyu_shell_gtk_toplevel_set_focus(ShoyuShellGtkToplevel *self) {
+  g_return_if_fail(SHOYU_SHELL_GTK_IS_TOPLEVEL(self));
+  g_return_if_fail(self->shoyu_shell_toplevel != NULL && !self->is_invalidated);
+
+  shoyu_shell_toplevel_set_focus(self->shoyu_shell_toplevel);
+}

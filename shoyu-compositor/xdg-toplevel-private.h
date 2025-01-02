@@ -12,6 +12,7 @@ struct _ShoyuXdgToplevel {
     struct wlr_xdg_toplevel *wlr_xdg_toplevel;
 
     bool is_invalidated;
+    bool is_focused;
     guint x;
     guint y;
 

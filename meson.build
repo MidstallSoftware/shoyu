@@ -239,6 +239,7 @@ drm = dependency('libdrm', version: '>= 2.4.0')
 gbm = dependency('gbm', version: '>= 24.1.0')
 libudev = dependency('libudev', version: '>= 256')
 pixman = dependency('pixman-1', version: '>= 0.43.0')
+xkbcommon = dependency('xkbcommon', version: '>= 1.7.0')
 
 shoyu_shells = []
 

@@ -42,4 +42,7 @@ void shoyu_shell_gtk_toplevel_set_geometry(ShoyuShellGtkToplevel *self,
                                            uint32_t x, uint32_t y,
                                            uint32_t width, uint32_t height);
 
+SHOYU_SHELL_GTK_AVAILABLE_IN_ALL
+void shoyu_shell_gtk_toplevel_set_focus(ShoyuShellGtkToplevel *self);
+
 G_END_DECLS
