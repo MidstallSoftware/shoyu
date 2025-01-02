@@ -11,6 +11,8 @@
 #include <wlr/render/allocator.h>
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/types/wlr_output_layout.h>
+#include <wlr/types/wlr_seat.h>
+#include <wlr/types/wlr_xcursor_manager.h>
 #include <wlr/types/wlr_xdg_shell.h>
 
 struct _ShoyuCompositor {
@@ -30,6 +32,8 @@ struct _ShoyuCompositor {
     struct wlr_output_layout *output_layout;
 
     struct wlr_compositor *wlr_compositor;
+    struct wlr_seat *wlr_seat;
+    struct wlr_xcursor_manager *wlr_xcursor_manager;
 
     GList *surfaces;
     struct wl_listener new_surface;
@@ -62,6 +66,13 @@ struct _ShoyuCompositorClass {
      * The type to create when a #ShoyuInput is being created.
      */
     GType input_type;
+
+    /**
+     * ShoyuCompositor:input_type_pointer:
+     *
+     * The type to create when a #ShoyuPointerInput is being created.
+     */
+    GType input_type_pointer;
 
     /**
      * ShoyuCompositor:surface_type:

@@ -7,6 +7,7 @@
 #include <shoyu-compositor/input.h>
 #include <shoyu-compositor/main.h>
 #include <shoyu-compositor/output.h>
+#include <shoyu-compositor/pointer-input.h>
 #include <shoyu-compositor/shell.h>
 #include <shoyu-compositor/surface.h>
 #include <shoyu-compositor/version.h>

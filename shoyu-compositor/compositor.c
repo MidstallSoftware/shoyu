@@ -8,6 +8,8 @@
 #include "wayland-event-source.h"
 #include "xdg-toplevel-private.h"
 
+#include "pointer-input.h"
+
 #include <glib/gi18n-lib.h>
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_data_device.h>
@@ -184,7 +186,8 @@ static void shoyu_compositor_new_input(struct wl_listener *listener,
   g_debug("Inputs changed (old: %u, new: %u)", len, new_len);
   g_assert(new_len > len);
 
-  g_debug("Created ShoyuInput#%p", input);
+  g_debug("Created %s as ShoyuInput#%p", g_type_name(G_OBJECT_TYPE(input)),
+          input);
   g_signal_emit(self, shoyu_compositor_sigs[SIG_INPUT_ADDED], 0, input);
 }
 
@@ -298,6 +301,9 @@ static void shoyu_compositor_finalize(GObject *object) {
 
   g_clear_object(&self->shell);
 
+  g_clear_pointer(&self->wlr_xcursor_manager,
+                  (GDestroyNotify)wlr_xcursor_manager_destroy);
+  g_clear_pointer(&self->wlr_seat, (GDestroyNotify)wlr_seat_destroy);
   g_clear_pointer(&self->wlr_allocator, (GDestroyNotify)wlr_allocator_destroy);
   g_clear_pointer(&self->wlr_renderer, (GDestroyNotify)wlr_renderer_destroy);
   g_clear_pointer(&self->wlr_backend, (GDestroyNotify)wlr_backend_destroy);
@@ -379,8 +385,22 @@ shoyu_compositor_real_create_input(ShoyuCompositor *self,
                                    struct wlr_input_device *input_device) {
   ShoyuCompositorClass *class = SHOYU_COMPOSITOR_GET_CLASS(self);
 
-  ShoyuInput *input = g_object_new(class->input_type, "compositor", self, NULL);
+  uint32_t caps = self->wlr_seat->capabilities;
+  GType input_type = class->input_type;
+
+  switch (input_device->type) {
+    case WLR_INPUT_DEVICE_POINTER:
+      input_type = class->input_type_pointer;
+      caps |= WL_SEAT_CAPABILITY_POINTER;
+      break;
+    default:
+      break;
+  }
+
+  ShoyuInput *input = g_object_new(input_type, "compositor", self, NULL);
   g_return_val_if_fail(input != NULL, NULL);
+
+  wlr_seat_set_capabilities(self->wlr_seat, caps);
   return input;
 }
 
@@ -415,6 +435,7 @@ static void shoyu_compositor_class_init(ShoyuCompositorClass *class) {
 
   class->output_type = SHOYU_TYPE_OUTPUT;
   class->input_type = SHOYU_TYPE_INPUT;
+  class->input_type_pointer = SHOYU_TYPE_POINTER_INPUT;
   class->surface_type = SHOYU_TYPE_SURFACE;
   class->xdg_toplevel_type = SHOYU_TYPE_XDG_TOPLEVEL;
 
@@ -552,6 +573,12 @@ static void shoyu_compositor_init(ShoyuCompositor *self) {
 
   self->output_layout = wlr_output_layout_create(self->wl_display);
   g_assert(self->output_layout != NULL);
+
+  self->wlr_seat = wlr_seat_create(self->wl_display, "seat0");
+  g_assert(self->wlr_seat != NULL);
+
+  self->wlr_xcursor_manager = wlr_xcursor_manager_create(NULL, 24);
+  g_assert(self->wlr_xcursor_manager != NULL);
 
   self->shell = shoyu_shell_new(self);
   g_assert(self->shell != NULL);
