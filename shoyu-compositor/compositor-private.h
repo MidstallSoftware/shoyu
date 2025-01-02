@@ -240,6 +240,9 @@ struct _ShoyuCompositorClass {
     void (*started)(ShoyuCompositor *self);
 };
 
+ShoyuXdgToplevel *
+shoyu_compositor_get_focused_xdg_toplevel(ShoyuCompositor *self);
+
 ShoyuOutput *shoyu_compositor_get_output(ShoyuCompositor *self,
                                          struct wlr_output *wlr_output);
 ShoyuSurface *shoyu_compositor_get_surface(ShoyuCompositor *self,

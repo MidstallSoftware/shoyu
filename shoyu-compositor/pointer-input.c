@@ -1,6 +1,7 @@
 #include "compositor-private.h"
 #include "output-private.h"
 #include "pointer-input-private.h"
+#include "xdg-toplevel-private.h"
 
 /**
  * ShoyuPointerInput:
@@ -14,6 +15,9 @@ static void shoyu_pointer_input_process_cursor_motion(ShoyuPointerInput *self,
                                                       uint32_t time) {
   ShoyuInput *input = SHOYU_INPUT(self);
 
+  ShoyuXdgToplevel *xdg_toplevel =
+      shoyu_compositor_get_focused_xdg_toplevel(input->compositor);
+
   struct wl_output *wl_output = wlr_output_layout_output_at(
       input->compositor->output_layout, self->cursor->x, self->cursor->y);
   g_return_if_fail(wl_output != NULL);
@@ -22,29 +26,37 @@ static void shoyu_pointer_input_process_cursor_motion(ShoyuPointerInput *self,
       shoyu_compositor_get_output(input->compositor, wl_output);
   g_return_if_fail(output != NULL);
 
-  if (output->wlr_surface != NULL) {
-    struct wlr_xdg_toplevel *wlr_xdg_toplevel =
-        wlr_xdg_toplevel_try_from_wlr_surface(output->wlr_surface);
+  double sx = 0.0;
+  double sy = 0.0;
 
-    if (wlr_xdg_toplevel != NULL) {
-      wlr_xdg_toplevel_set_activated(wlr_xdg_toplevel, TRUE);
-    }
+  wlr_output_layout_output_coords(input->compositor->output_layout, wl_output,
+                                  &sx, &sy);
 
-    double sx = 0.0;
-    double sy = 0.0;
+  double rx = self->cursor->x - sx;
+  double ry = self->cursor->y - sy;
 
-    wlr_output_layout_output_coords(input->compositor->output_layout, wl_output,
-                                    &sx, &sy);
-
-    double rx = self->cursor->x - sx;
-    double ry = self->cursor->y - sy;
-
+  if (xdg_toplevel != NULL) {
     wlr_seat_pointer_notify_enter(input->compositor->wlr_seat,
-                                  output->wlr_surface, rx, ry);
+                                  xdg_toplevel->wlr_xdg_toplevel->base->surface,
+                                  rx, ry);
 
     wlr_seat_pointer_notify_motion(input->compositor->wlr_seat, time, rx, ry);
   } else {
-    wlr_seat_pointer_clear_focus(input->compositor->wlr_seat);
+    if (output->wlr_surface != NULL) {
+      struct wlr_xdg_toplevel *wlr_xdg_toplevel =
+          wlr_xdg_toplevel_try_from_wlr_surface(output->wlr_surface);
+
+      if (wlr_xdg_toplevel != NULL) {
+        wlr_xdg_toplevel_set_activated(wlr_xdg_toplevel, TRUE);
+      }
+
+      wlr_seat_pointer_notify_enter(input->compositor->wlr_seat,
+                                    output->wlr_surface, rx, ry);
+
+      wlr_seat_pointer_notify_motion(input->compositor->wlr_seat, time, rx, ry);
+    } else {
+      wlr_seat_pointer_clear_focus(input->compositor->wlr_seat);
+    }
   }
 }
 

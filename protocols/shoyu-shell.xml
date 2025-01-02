@@ -20,6 +20,9 @@
       <arg name="output" type="object" interface="wl_output" />
     </request>
 
+    <request name="clear_focus">
+    </request>
+
     <event name="toplevel_added">
       <arg name="toplevel" type="new_id" interface="shoyu_shell_toplevel" />
     </event>
@@ -63,6 +66,8 @@
       <arg name="y" type="uint" />
       <arg name="width" type="uint" summary="width" />
       <arg name="height" type="uint" summary="height" />
+    </request>
+    <request name="set_focus">
     </request>
     <event name="configure">
       <arg name="x" type="uint" />

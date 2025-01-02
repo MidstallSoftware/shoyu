@@ -674,6 +674,19 @@ ShoyuShell *shoyu_compositor_get_shell(ShoyuCompositor *self) {
   return self->shell;
 }
 
+ShoyuXdgToplevel *
+shoyu_compositor_get_focused_xdg_toplevel(ShoyuCompositor *self) {
+  g_return_val_if_fail(SHOYU_IS_COMPOSITOR(self), NULL);
+
+  for (GList *item = self->xdg_toplevels; item != NULL; item = item->next) {
+    ShoyuXdgToplevel *xdg_toplevel = SHOYU_XDG_TOPLEVEL(item->data);
+    if (xdg_toplevel->is_focused)
+      return xdg_toplevel;
+  }
+
+  return NULL;
+}
+
 ShoyuOutput *shoyu_compositor_get_output(ShoyuCompositor *self,
                                          struct wlr_output *wlr_output) {
   g_return_val_if_fail(SHOYU_IS_COMPOSITOR(self), NULL);

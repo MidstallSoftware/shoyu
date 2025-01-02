@@ -6,6 +6,7 @@
 enum {
   PROP_0 = 0,
   PROP_COMPOSITOR,
+  PROP_FOCUS,
   N_PROPERTIES,
 
   SIG_DESTROY = 0,
@@ -48,6 +49,12 @@ static void shoyu_xdg_toplevel_set_property(GObject *object, guint prop_id,
     case PROP_COMPOSITOR:
       self->compositor = g_value_dup_object(value);
       break;
+    case PROP_FOCUS:
+      self->is_focused = g_value_get_boolean(value);
+      if (!self->is_invalidated && self->wlr_xdg_toplevel != NULL)
+        wlr_xdg_toplevel_set_activated(self->wlr_xdg_toplevel,
+                                       self->is_focused);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
       break;
@@ -61,6 +68,9 @@ static void shoyu_xdg_toplevel_get_property(GObject *object, guint prop_id,
   switch (prop_id) {
     case PROP_COMPOSITOR:
       g_value_set_object(value, G_OBJECT(self->compositor));
+      break;
+    case PROP_FOCUS:
+      g_value_set_boolean(value, self->is_focused);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -78,6 +88,10 @@ static void shoyu_xdg_toplevel_class_init(ShoyuXdgToplevelClass *class) {
   shoyu_xdg_toplevel_props[PROP_COMPOSITOR] = g_param_spec_object(
       "compositor", "Shoyu Compositor", "The compositor the output comes from.",
       SHOYU_TYPE_COMPOSITOR, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+
+  shoyu_xdg_toplevel_props[PROP_FOCUS] = g_param_spec_boolean(
+      "focus", "Is toplevel focused", "Whether the toplevel is in focus.",
+      FALSE, G_PARAM_READWRITE);
 
   g_object_class_install_properties(object_class, N_PROPERTIES,
                                     shoyu_xdg_toplevel_props);

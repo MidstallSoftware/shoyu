@@ -113,9 +113,22 @@ static void shoyu_shell_toplevel_set_geometry(struct wl_client *client,
   shoyu_xdg_toplevel_set_geometry(xdg_toplevel, x, y, width, height);
 }
 
+static void shoyu_shell_toplevel_set_focus(struct wl_client *client,
+                                           struct wl_resource *resource) {
+  ShellToplevel *self = wl_resource_get_user_data(resource);
+
+  ShoyuXdgToplevel *xdg_toplevel = shoyu_compositor_get_xdg_toplevel(
+      self->shell->compositor, self->wlr_xdg_toplevel);
+  g_return_if_fail(xdg_toplevel != NULL);
+  g_return_if_fail(SHOYU_XDG_TOPLEVEL(xdg_toplevel));
+
+  g_object_set(xdg_toplevel, "focus", TRUE, NULL);
+}
+
 static const struct shoyu_shell_toplevel_interface shoyu_shell_toplevel_impl = {
   .capture = shoyu_shell_toplevel_capture,
   .set_geometry = shoyu_shell_toplevel_set_geometry,
+  .set_focus = shoyu_shell_toplevel_set_focus,
 };
 
 static void shoyu_shell_toplevel_destroy(ShellToplevel *self) {
