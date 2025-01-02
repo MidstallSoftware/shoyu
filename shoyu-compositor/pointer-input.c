@@ -23,16 +23,26 @@ static void shoyu_pointer_input_process_cursor_motion(ShoyuPointerInput *self,
   g_return_if_fail(output != NULL);
 
   if (output->wlr_surface != NULL) {
+    struct wlr_xdg_toplevel *wlr_xdg_toplevel =
+        wlr_xdg_toplevel_try_from_wlr_surface(output->wlr_surface);
+
+    if (wlr_xdg_toplevel != NULL) {
+      wlr_xdg_toplevel_set_activated(wlr_xdg_toplevel, TRUE);
+    }
+
     double sx = 0.0;
     double sy = 0.0;
 
     wlr_output_layout_output_coords(input->compositor->output_layout, wl_output,
                                     &sx, &sy);
 
-    wlr_seat_pointer_notify_enter(input->compositor->wlr_seat,
-                                  output->wlr_surface, sx, sy);
+    double rx = self->cursor->x - sx;
+    double ry = self->cursor->y - sy;
 
-    wlr_seat_pointer_notify_motion(input->compositor->wlr_seat, time, sx, sy);
+    wlr_seat_pointer_notify_enter(input->compositor->wlr_seat,
+                                  output->wlr_surface, rx, ry);
+
+    wlr_seat_pointer_notify_motion(input->compositor->wlr_seat, time, rx, ry);
   } else {
     wlr_seat_pointer_clear_focus(input->compositor->wlr_seat);
   }
@@ -58,6 +68,30 @@ shoyu_pointer_input_cursor_motion_absolute(struct wl_listener *listener,
   wlr_cursor_warp_absolute(self->cursor, &event->pointer->base, event->x,
                            event->y);
   shoyu_pointer_input_process_cursor_motion(self, event->time_msec);
+}
+
+static void shoyu_pointer_input_cursor_button(struct wl_listener *listener,
+                                              void *data) {
+  ShoyuPointerInput *self = wl_container_of(listener, self, cursor_button);
+  ShoyuInput *input = SHOYU_INPUT(self);
+
+  struct wlr_pointer_button_event *event = data;
+
+  wlr_seat_pointer_notify_button(input->compositor->wlr_seat, event->time_msec,
+                                 event->button, event->state);
+}
+
+static void shoyu_pointer_input_cursor_axis(struct wl_listener *listener,
+                                            void *data) {
+  ShoyuPointerInput *self = wl_container_of(listener, self, cursor_axis);
+  ShoyuInput *input = SHOYU_INPUT(self);
+
+  struct wlr_pointer_axis_event *event = data;
+
+  wlr_seat_pointer_notify_axis(input->compositor->wlr_seat, event->time_msec,
+                               event->orientation, event->delta,
+                               event->delta_discrete, event->source,
+                               event->relative_direction);
 }
 
 static void shoyu_pointer_input_cursor_frame(struct wl_listener *listener,
@@ -100,6 +134,12 @@ shoyu_pointer_input_realized(ShoyuInput *input,
   wl_signal_add(&self->cursor->events.motion_absolute,
                 &self->cursor_motion_absolute);
 
+  self->cursor_button.notify = shoyu_pointer_input_cursor_button;
+  wl_signal_add(&self->cursor->events.button, &self->cursor_button);
+
+  self->cursor_axis.notify = shoyu_pointer_input_cursor_axis;
+  wl_signal_add(&self->cursor->events.axis, &self->cursor_axis);
+
   self->cursor_frame.notify = shoyu_pointer_input_cursor_frame;
   wl_signal_add(&self->cursor->events.frame, &self->cursor_frame);
 
@@ -113,6 +153,8 @@ static void shoyu_pointer_input_unrealized(ShoyuInput *input) {
 
   wl_list_remove(&self->cursor_motion.link);
   wl_list_remove(&self->cursor_motion_absolute.link);
+  wl_list_remove(&self->cursor_button.link);
+  wl_list_remove(&self->cursor_axis.link);
   wl_list_remove(&self->cursor_frame.link);
 
   wlr_cursor_detach_input_device(self->cursor, input->wlr_input_device);
